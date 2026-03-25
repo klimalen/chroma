@@ -17,6 +17,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<!-- HEIC конвертер -->
+<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Georgia',serif;background:#fafaf8;color:#1a1a18;min-height:100vh}
@@ -33,8 +35,6 @@ button{font-family:'Georgia',serif}
 @media(max-width:480px){
 .mobile-stack{flex-direction:column!important;align-items:flex-start!important}
 .mobile-full{width:100%!important}
-.mobile-hide{display:none!important}
-.mobile-small{font-size:12px!important}
 }
 </style>
 </head>
@@ -75,8 +75,10 @@ chooseTypeTitle:'Выберите цветотип',chooseTypeDesc:'Выбери
 confirm:'Подтвердить',type:'тип',
 uploadPhotoTitle:'Загрузите фото',uploadPhotoDesc:'Используйте чёткое фото анфас при естественном освещении.',
 photoTip:'💡 Совет: хорошее освещение, без макияжа, однотонный фон — улучшает точность',
-uploadSelfie:'Загрузите селфи',uploadSelfieHint:'JPG, PNG — обрабатывается на устройстве',
+uploadSelfie:'Загрузите селфи',uploadSelfieHint:'JPG, PNG, HEIC — обрабатывается на устройстве',
+uploadSelfieHintConvert:'HEIC конвертируется автоматически',
 detectBtn:'Определить мой цветотип',detecting:'Анализ внешности…',
+convertingHeic:'⏳ Конвертация HEIC…',
 back:'← Назад',
 detectedType:'Определённый цветотип',confidence:'% уверенность',
 analysisDetails:'Детали анализа',skinTone:'Тон кожи',undertone:'Подтон',hair:'Волосы',eyes:'Глаза',contrast:'Контраст',
@@ -86,13 +88,19 @@ approxWarning:'⚠️ Анализ на устройстве приблизит�
 confirmType:'Подтвердить этот тип',chooseDiff:'Выбрать другой',
 yourType:'Ваш цветотип',history:'История',change:'Изменить',
 analyzeTitle:'Анализ одежды',analyzeDesc:'Загрузите фото одежды — из гардероба или скриншот с маркетплейса.',
-uploadClothing:'Загрузите фото одежды',uploadClothingHint:'Предмет гардероба, скриншот магазина или лукбук',
+uploadClothing:'Загрузите фото одежды',uploadClothingHint:'JPG, PNG, HEIC — гардероб, магазин или лукбук',
 analyzeBtn:'Анализировать →',analyzingTitle:'Анализ вашего предмета',
 analyzingDesc:'Проверка совместимости цвета с вашим сезонным типом…',
 toDashboard:'← Назад',scoreLabel:'Оценка совместимости',
 analysisLabel:'Анализ',recommendLabel:'Рекомендация',yourPalette:'Ваша палитра',
 analyzeAnother:'Анализировать ещё',historyTitle:'История анализов',clearAll:'Очистить всё',noHistory:'Анализов пока нет',
-cannotRead:'❌ Не удалось прочитать файл. Попробуйте JPG или PNG.',
+/* Ошибки */
+errFormat:'❌ Формат не поддерживается. Используйте JPG, PNG или HEIC.',
+errSize:'❌ Файл слишком большой. Максимум 50 МБ.',
+errSecurity:'❌ Браузер блокирует доступ к файлу. Откройте сайт через http:// (не file://). Используйте Live Server или опубликуйте на Netlify.',
+errReader:'❌ Не удалось прочитать файл. Попробуйте другой файл.',
+errImage:'❌ Не удалось загрузить изображение. Файл может быть повреждён.',
+errHeic:'❌ Не удалось конвертировать HEIC. Попробуйте сохранить фото как JPG.',
 detectionFailed:'Определение не удалось — попробуйте выбрать вручную.',
 analysisFailed:'Анализ не удался. Попробуйте ещё раз.',
 offline:'офлайн',best:'Лучшие цвета',avoid:'Избегать',
@@ -117,8 +125,10 @@ chooseTypeTitle:'Choose your color type',chooseTypeDesc:'Select the season that 
 confirm:'Confirm',type:'type',
 uploadPhotoTitle:'Upload your photo',uploadPhotoDesc:'Use a clear front-facing photo in natural lighting.',
 photoTip:'💡 Tip: good lighting, no heavy makeup, plain background — improves accuracy',
-uploadSelfie:'Upload a selfie',uploadSelfieHint:'JPG, PNG — processed on your device',
+uploadSelfie:'Upload a selfie',uploadSelfieHint:'JPG, PNG, HEIC — processed on your device',
+uploadSelfieHintConvert:'HEIC is converted automatically',
 detectBtn:'Detect my color type',detecting:'Analyzing features…',
+convertingHeic:'⏳ Converting HEIC…',
 back:'← Back',
 detectedType:'Detected color type',confidence:'% confidence',
 analysisDetails:'Analysis details',skinTone:'Skin tone',undertone:'Undertone',hair:'Hair',eyes:'Eyes',contrast:'Contrast',
@@ -128,13 +138,19 @@ approxWarning:'⚠️ On-device analysis is approximate. If it doesn\'t feel rig
 confirmType:'Confirm this type',chooseDiff:'Choose differently',
 yourType:'Your color type',history:'History',change:'Change',
 analyzeTitle:'Analyze clothing',analyzeDesc:'Upload any clothing photo — wardrobe or marketplace screenshot.',
-uploadClothing:'Upload clothing photo',uploadClothingHint:'Wardrobe item, shop screenshot, or lookbook',
+uploadClothing:'Upload clothing photo',uploadClothingHint:'JPG, PNG, HEIC — wardrobe, shop or lookbook',
 analyzeBtn:'Analyze this item →',analyzingTitle:'Analyzing your item',
 analyzingDesc:'Checking color compatibility with your seasonal type…',
 toDashboard:'← Back',scoreLabel:'Color match score',
 analysisLabel:'Analysis',recommendLabel:'Recommendation',yourPalette:'Your palette',
 analyzeAnother:'Analyze another item',historyTitle:'Analysis history',clearAll:'Clear all',noHistory:'No analyses yet',
-cannotRead:'❌ Could not read file. Please use JPG or PNG.',
+/* Errors */
+errFormat:'❌ Format not supported. Please use JPG, PNG, or HEIC.',
+errSize:'❌ File too large. Maximum 50 MB.',
+errSecurity:'❌ Browser blocked file access. Open via http:// not file://. Use Live Server or publish to Netlify.',
+errReader:'❌ Could not read file. Try another file.',
+errImage:'❌ Could not load image. File may be corrupted.',
+errHeic:'❌ Could not convert HEIC. Try saving the photo as JPG.',
 detectionFailed:'Detection failed — try manual selection.',
 analysisFailed:'Analysis failed. Please try again.',
 offline:'offline',best:'Best colors',avoid:'Avoid',
@@ -150,83 +166,47 @@ SEASONS DATA
 ═══════════════════════════════════════════════ */
 window.SEASONS = {
 spring:{
-id:'spring',
-name:{ru:'Весна',en:'Spring'},
-label:{ru:'Тёплый и светлый',en:'Warm & Light'},
+id:'spring',name:{ru:'Весна',en:'Spring'},label:{ru:'Тёплый и светлый',en:'Warm & Light'},
 swatches:['#F5C040','#E87040','#F0A060','#70B050','#60C0A0'],
 best:{ru:'Тёплые жёлтые, кораллы, персиковые, слоновая кость, тёплый белый',en:'Warm yellows, corals, peaches, ivory, warm whites'},
 avoid:{ru:'Чёрный, ледяные голубые, холодные серые, белоснежный',en:'Black, icy blues, cool grays, stark white'},
-accent:'#D4703A',bg:'#FFF8F0',
-tagline:{ru:'Золотое тепло — ваша подпись',en:'Golden warmth is your signature'},
+accent:'#D4703A',bg:'#FFF8F0',tagline:{ru:'Золотое тепло — ваша подпись',en:'Golden warmth is your signature'},
 keywords:{ru:['Тёплый','Светлый','Яркий','Свежий','Жизнерадостный'],en:['Warm','Light','Bright','Fresh','Cheerful']},
-description:{
-ru:'Весенний цветотип отличается тёплым золотистым подтоном кожи и лёгкой, яркой внешностью. Ваша кожа словно светится изнутри, когда вы одеваетесь в тёплые, чистые тона. Весна — самый лёгкий и жизнерадостный из всех сезонов.',
-en:'The Spring color type is characterized by warm golden undertones and a light, bright appearance. Your skin seems to glow from within when you wear warm, clear tones. Spring is the lightest and most cheerful of all seasons.'
-},
-makeup:{
-ru:'Персиковые и коралловые румяна, тёплые нюдовые помады, бронзер вместо контуринга, золотистые тени.',
-en:'Peach and coral blush, warm nude lipsticks, bronzer instead of contouring, golden eye shadows.'
-},
+description:{ru:'Весенний цветотип отличается тёплым золотистым подтоном кожи и лёгкой, яркой внешностью. Ваша кожа словно светится изнутри, когда вы одеваетесь в тёплые, чистые тона. Весна — самый лёгкий и жизнерадостный из всех сезонов.',en:'The Spring color type is characterized by warm golden undertones and a light, bright appearance. Your skin seems to glow from within when you wear warm, clear tones. Spring is the lightest and most cheerful of all seasons.'},
+makeup:{ru:'Персиковые и коралловые румяна, тёплые нюдовые помады, бронзер вместо контуринга, золотистые тени.',en:'Peach and coral blush, warm nude lipsticks, bronzer instead of contouring, golden eye shadows.'},
 neutrals:{ru:'Слоновая кость, кремовый, тёплый бежевый, карамельный, светло-золотой',en:'Ivory, cream, warm beige, caramel, light gold'},
 },
 summer:{
-id:'summer',
-name:{ru:'Лето',en:'Summer'},
-label:{ru:'Холодный и мягкий',en:'Cool & Soft'},
+id:'summer',name:{ru:'Лето',en:'Summer'},label:{ru:'Холодный и мягкий',en:'Cool & Soft'},
 swatches:['#C0A8D4','#A0B4D0','#C8A0B4','#90B8B0','#C4B0C8'],
 best:{ru:'Мягкие розовые, лавандовые, пыльно-голубые, приглушённые розы, мов',en:'Soft pinks, lavenders, dusty blues, muted roses, mauve'},
 avoid:{ru:'Оранжевый, тёплые коричневые, яркие жёлтые, землистые тона',en:'Orange, warm browns, bright yellows, earthy tones'},
-accent:'#7A96B8',bg:'#F0F4FA',
-tagline:{ru:'Вы сияете в мягких, мечтательных тонах',en:'You shine in soft, dreamy tones'},
+accent:'#7A96B8',bg:'#F0F4FA',tagline:{ru:'Вы сияете в мягких, мечтательных тонах',en:'You shine in soft, dreamy tones'},
 keywords:{ru:['Холодный','Мягкий','Романтичный','Утончённый','Деликатный'],en:['Cool','Soft','Romantic','Refined','Delicate']},
-description:{
-ru:'Летний цветотип характеризуется холодным розоватым или голубоватым подтоном кожи. Ваша красота — в утончённости и деликатности. Приглушённые, пепельные тона создают гармонию с вашей природной палитрой и придают облику особую элегантность.',
-en:'The Summer color type is characterized by cool pink or bluish undertones. Your beauty lies in refinement and delicacy. Muted, ashy tones create harmony with your natural palette and give your look a special elegance.'
-},
-makeup:{
-ru:'Розово-лиловые румяна, холодные нюды и розовые помады, серебристые или лавандовые тени, тушь тёмно-коричневая.',
-en:'Pink-mauve blush, cool nudes and pink lipsticks, silver or lavender eye shadows, dark brown mascara.'
-},
+description:{ru:'Летний цветотип характеризуется холодным розоватым или голубоватым подтоном кожи. Ваша красота — в утончённости и деликатности. Приглушённые, пепельные тона создают гармонию с вашей природной палитрой.',en:'The Summer color type is characterized by cool pink or bluish undertones. Your beauty lies in refinement and delicacy. Muted, ashy tones create harmony with your natural palette.'},
+makeup:{ru:'Розово-лиловые румяна, холодные нюды и розовые помады, серебристые или лавандовые тени.',en:'Pink-mauve blush, cool nudes and pink lipsticks, silver or lavender eye shadows.'},
 neutrals:{ru:'Мягкий белый, серо-голубой, лавандово-серый, пыльная роза, светлый мов',en:'Soft white, blue-gray, lavender-gray, dusty rose, light mauve'},
 },
 autumn:{
-id:'autumn',
-name:{ru:'Осень',en:'Autumn'},
-label:{ru:'Тёплый и глубокий',en:'Warm & Deep'},
+id:'autumn',name:{ru:'Осень',en:'Autumn'},label:{ru:'Тёплый и глубокий',en:'Warm & Deep'},
 swatches:['#C05020','#907810','#608030','#904028','#806010'],
 best:{ru:'Ржавчина, терракота, оливковый, горчица, тёплый бежевый, насыщенный коричневый',en:'Rust, terracotta, olive, mustard, warm camel, rich browns'},
 avoid:{ru:'Ледяные розовые, яркие голубые, серебряный, холодные серые',en:'Icy pinks, bright blues, silver, cool grays'},
-accent:'#A06820',bg:'#FDF5E6',
-tagline:{ru:'Насыщенные землистые тона раскрывают вашу глубину',en:'Rich earthy tones bring out your depth'},
+accent:'#A06820',bg:'#FDF5E6',tagline:{ru:'Насыщенные землистые тона раскрывают вашу глубину',en:'Rich earthy tones bring out your depth'},
 keywords:{ru:['Тёплый','Глубокий','Насыщенный','Земляной','Загадочный'],en:['Warm','Deep','Rich','Earthy','Mysterious']},
-description:{
-ru:'Осенний цветотип — самый насыщенный и глубокий среди тёплых типов. Ваша кожа имеет золотистый, бронзовый или медный подтон. Вы созданы для богатых, земляных оттенков, которые перекликаются с палитрой осеннего леса — роскошного и многогранного.',
-en:'The Autumn color type is the richest and deepest among warm types. Your skin has golden, bronze, or copper undertones. You are made for rich, earthy shades that echo the palette of an autumn forest — luxurious and multifaceted.'
-},
-makeup:{
-ru:'Терракотовые и бронзовые румяна, тёплые коричнево-красные помады, бронзер, тени цвета меди и хаки.',
-en:'Terracotta and bronze blush, warm brown-red lipsticks, bronzer, copper and khaki eye shadows.'
-},
+description:{ru:'Осенний цветотип — самый насыщенный и глубокий среди тёплых типов. Ваша кожа имеет золотистый, бронзовый или медный подтон. Вы созданы для богатых, земляных оттенков, которые перекликаются с палитрой осеннего леса.',en:'The Autumn color type is the richest and deepest among warm types. Your skin has golden, bronze, or copper undertones. You are made for rich, earthy shades that echo the palette of an autumn forest.'},
+makeup:{ru:'Терракотовые и бронзовые румяна, тёплые коричнево-красные помады, бронзер, тени цвета меди и хаки.',en:'Terracotta and bronze blush, warm brown-red lipsticks, bronzer, copper and khaki eye shadows.'},
 neutrals:{ru:'Тёплый бежевый, верблюжий, тёмно-коричневый, хаки, кофейный',en:'Warm beige, camel, dark brown, khaki, coffee'},
 },
 winter:{
-id:'winter',
-name:{ru:'Зима',en:'Winter'},
-label:{ru:'Холодный и глубокий',en:'Cool & Deep'},
+id:'winter',name:{ru:'Зима',en:'Winter'},label:{ru:'Холодный и глубокий',en:'Cool & Deep'},
 swatches:['#2A2A4E','#163060','#2040A0','#6030A0','#C03060'],
 best:{ru:'Чистый белый, чёрный, тёмно-синий, королевский синий, изумрудный, фуксия',en:'Pure white, black, navy, royal blue, emerald, fuchsia'},
 avoid:{ru:'Оранжевый, тёплый бежевый, пыльная роза, золотой, верблюжий',en:'Orange, warm beige, dusty rose, gold, camel'},
-accent:'#5040C0',bg:'#F0F0F8',
-tagline:{ru:'Смелые контрасты — ваша суперсила',en:'Bold contrasts are your superpower'},
+accent:'#5040C0',bg:'#F0F0F8',tagline:{ru:'Смелые контрасты — ваша суперсила',en:'Bold contrasts are your superpower'},
 keywords:{ru:['Холодный','Контрастный','Драматичный','Элегантный','Яркий'],en:['Cool','Contrasted','Dramatic','Elegant','Striking']},
-description:{
-ru:'Зимний цветотип — самый контрастный и драматичный. Ваша внешность требует чёткости и насыщенности. Холодные, чистые цвета высокой интенсивности создают вокруг вас ауру уверенности и элегантности. Вы блистаете там, где другие теряются.',
-en:'The Winter color type is the most contrasted and dramatic. Your appearance demands clarity and intensity. Cold, pure colors of high intensity create an aura of confidence and elegance around you. You shine where others get lost.'
-},
-makeup:{
-ru:'Холодные розово-красные помады, чёткие чёрные стрелки, холодные румяна цвета фуксии, серебристые и синие тени.',
-en:'Cool pink-red lipsticks, precise black eyeliner, cool fuchsia blush, silver and blue eye shadows.'
-},
+description:{ru:'Зимний цветотип — самый контрастный и драматичный. Холодные, чистые цвета высокой интенсивности создают вокруг вас ауру уверенности и элегантности. Вы блистаете там, где другие теряются.',en:'The Winter color type is the most contrasted and dramatic. Cold, pure colors of high intensity create an aura of confidence and elegance around you. You shine where others get lost.'},
+makeup:{ru:'Холодные розово-красные помады, чёткие чёрные стрелки, румяна цвета фуксии, серебристые и синие тени.',en:'Cool pink-red lipsticks, precise black eyeliner, fuchsia blush, silver and blue eye shadows.'},
 neutrals:{ru:'Чистый белый, чёрный, тёмно-серый, тёмно-синий, холодный светло-серый',en:'Pure white, black, dark gray, dark navy, cool light gray'},
 }
 };
@@ -240,41 +220,115 @@ window.deltaE=function(l1,l2){return Math.sqrt(Math.pow(l1.L-l2.L,2)+Math.pow(l1
 window.percentile=function(arr,p){if(!arr.length)return 0;var s=arr.slice().sort(function(a,b){return a-b;});return s[Math.min(Math.floor(s.length*p/100),s.length-1)];};
 
 /* ═══════════════════════════════════════════════
-IMAGE UTILS
+HEIC DETECTION & CONVERSION
 ═══════════════════════════════════════════════ */
-window.compressImage=function(file){
-return new Promise(function(resolve,reject){
-var allowed=['image/jpeg','image/jpg','image/png','image/gif','image/webp','image/bmp'];
-if(file.type&&allowed.indexOf(file.type)===-1){reject(new Error('format'));return;}
-if(file.size>20*1024*1024){reject(new Error('size'));return;}
-var reader=new FileReader();
-reader.onerror=function(){reject(new Error('reader'));};
-reader.onload=function(e){
-var img=new Image();
-img.onerror=function(){reject(new Error('image'));};
-img.onload=function(){
-try{
-var MAX=800,scale=Math.min(1,MAX/Math.max(img.width,img.height));
-var w=Math.round(img.width*scale),h=Math.round(img.height*scale);
-var canvas=document.createElement('canvas');
-canvas.width=w;canvas.height=h;
-var ctx=canvas.getContext('2d');
-ctx.drawImage(img,0,0,w,h);
-try{ctx.getImageData(0,0,1,1);}catch(se){reject(new Error('canvas_security'));return;}
-resolve({canvas:canvas,w:w,h:h,preview:canvas.toDataURL('image/jpeg',0.82)});
-}catch(e){reject(new Error('canvas'));}
+window.isHeicFile = function(file) {
+/* Проверяем по MIME-типу и расширению */
+var name = (file.name || '').toLowerCase();
+var mime = (file.type || '').toLowerCase();
+return mime === 'image/heic' ||
+mime === 'image/heif' ||
+mime === 'image/heic-sequence' ||
+mime === 'image/heif-sequence' ||
+name.endsWith('.heic') ||
+name.endsWith('.heif');
 };
-img.src=e.target.result;
-};
-reader.readAsDataURL(file);
+
+window.convertHeicToJpeg = function(file) {
+return new Promise(function(resolve, reject) {
+if (typeof heic2any === 'undefined') {
+reject(new Error('heic_lib_missing'));
+return;
+}
+heic2any({
+blob: file,
+toType: 'image/jpeg',
+quality: 0.88
+}).then(function(result) {
+/* heic2any может вернуть массив или один blob */
+var blob = Array.isArray(result) ? result[0] : result;
+/* Создаём File из blob с нормальным именем */
+var jpegName = (file.name || 'photo').replace(/\.(heic|heif)$/i, '.jpg');
+var jpegFile = new File([blob], jpegName, {type: 'image/jpeg'});
+resolve(jpegFile);
+}).catch(function(err) {
+reject(new Error('heic_convert_failed'));
+});
 });
 };
-window.getImageData=function(o){return o.canvas.getContext('2d').getImageData(0,0,o.w,o.h);};
+
+/* ═══════════════════════════════════════════════
+IMAGE UTILS (с поддержкой HEIC)
+═══════════════════════════════════════════════ */
+window.compressImage = function(file, onStatus) {
+return new Promise(function(resolve, reject) {
+var allowed = [
+'image/jpeg','image/jpg','image/png','image/gif',
+'image/webp','image/bmp','image/svg+xml',
+'image/heic','image/heif','image/heic-sequence','image/heif-sequence'
+];
+var name = (file.name||'').toLowerCase();
+var isHeic = window.isHeicFile(file);
+var isKnown = isHeic ||
+(file.type && allowed.indexOf(file.type.toLowerCase()) !== -1) ||
+name.endsWith('.jpg') || name.endsWith('.jpeg') ||
+name.endsWith('.png') || name.endsWith('.webp');
+
+if (!isKnown) { reject(new Error('format')); return; }
+if (file.size > 50 * 1024 * 1024) { reject(new Error('size')); return; }
+
+/* Если HEIC — сначала конвертируем */
+var prepareFile = isHeic
+? (function() {
+if (onStatus) onStatus('converting');
+return window.convertHeicToJpeg(file);
+})()
+: Promise.resolve(file);
+
+prepareFile.then(function(readyFile) {
+if (onStatus) onStatus('reading');
+var reader = new FileReader();
+reader.onerror = function() { reject(new Error('reader')); };
+reader.onload = function(e) {
+var img = new Image();
+img.onerror = function() { reject(new Error('image')); };
+img.onload = function() {
+try {
+var MAX = 800;
+var scale = Math.min(1, MAX / Math.max(img.width, img.height));
+var w = Math.round(img.width * scale);
+var h = Math.round(img.height * scale);
+var canvas = document.createElement('canvas');
+canvas.width = w; canvas.height = h;
+var ctx = canvas.getContext('2d');
+ctx.drawImage(img, 0, 0, w, h);
+try { ctx.getImageData(0, 0, 1, 1); }
+catch(se) { reject(new Error('canvas_security')); return; }
+var preview = canvas.toDataURL('image/jpeg', 0.82);
+resolve({ canvas: canvas, w: w, h: h, preview: preview });
+} catch(e) { reject(new Error('canvas')); }
+};
+img.src = e.target.result;
+};
+reader.readAsDataURL(readyFile);
+}).catch(function(err) {
+if (err.message === 'heic_lib_missing' || err.message === 'heic_convert_failed') {
+reject(err);
+} else {
+reject(new Error('reader'));
+}
+});
+});
+};
+
+window.getImageData = function(o) {
+return o.canvas.getContext('2d').getImageData(0, 0, o.w, o.h);
+};
 
 /* ═══════════════════════════════════════════════
 SKIN DETECTION
 ═══════════════════════════════════════════════ */
-window.isSkinPixel=function(r,g,b){var rgb=(r>95&&g>40&&b>20&&r>g&&r>b&&Math.abs(r-g)>10&&r-b>15);var hsv=window.rgbToHsv(r,g,b);var hsv2=(hsv.h>=0&&hsv.h<=55&&hsv.s>=0.08&&hsv.s<=0.80&&hsv.v>=0.25);return rgb||hsv2;};
+window.isSkinPixel=function(r,g,b){var rgb=(r>95&&g>40&&b>20&&r>g&&r>b&&Math.abs(r-g)>10&&r-b>15);var hsv=window.rgbToHsv(r,g,b);var h2=(hsv.h>=0&&hsv.h<=55&&hsv.s>=0.08&&hsv.s<=0.80&&hsv.v>=0.25);return rgb||h2;};
 window.getSkinPixels=function(imageData,cf){cf=cf||0.6;var W=imageData.width,H=imageData.height,x0=Math.floor(W*(1-cf)/2),x1=Math.floor(W*(1+cf)/2),y0=Math.floor(H*(1-cf)/2),y1=Math.floor(H*(1+cf)/2),skin=[],d=imageData.data;for(var y=y0;y<y1;y++)for(var x=x0;x<x1;x++){var i=(y*W+x)*4;if(window.isSkinPixel(d[i],d[i+1],d[i+2]))skin.push({r:d[i],g:d[i+1],b:d[i+2]});}return skin;};
 
 window.detectColorType=function(imgObj){
@@ -285,8 +339,7 @@ if(skin.length<200)skin=window.getSkinPixels(imageData,0.95);
 if(skin.length<100){skin=[];var cx0=Math.floor(W*0.3),cx1=Math.floor(W*0.7),cy0=Math.floor(H*0.2),cy1=Math.floor(H*0.6);for(var y=cy0;y<cy1;y++)for(var x=cx0;x<cx1;x++){var i=(y*W+x)*4;skin.push({r:d[i],g:d[i+1],b:d[i+2]});}}
 var sumR=0,sumG=0,sumB=0;for(var k=0;k<skin.length;k++){sumR+=skin[k].r;sumG+=skin[k].g;sumB+=skin[k].b;}
 var lab=window.rgbToLab(sumR/skin.length,sumG/skin.length,sumB/skin.length);
-var warmScore=lab.b*0.7+lab.a*0.3;
-var undertone=warmScore>10?'warm':warmScore<3?'cool':'neutral';
+var warmScore=lab.b*0.7+lab.a*0.3,undertone=warmScore>10?'warm':warmScore<3?'cool':'neutral';
 var L=lab.L,skinTone=L>68?'light':L>52?'medium':L>38?'olive':'dark';
 var lightness=[];for(var j=0;j<d.length;j+=4)lightness.push(0.299*d[j]+0.587*d[j+1]+0.114*d[j+2]);
 var contrastVal=window.percentile(lightness,90)-window.percentile(lightness,10);
@@ -294,11 +347,11 @@ var contrast=contrastVal>140?'high':contrastVal>80?'medium':'low';
 var matrix={warm:{light:'spring',medium:contrast==='high'?'spring':'autumn',olive:'autumn',dark:'autumn'},cool:{light:'summer',medium:contrast==='high'?'winter':'summer',olive:'winter',dark:'winter'},neutral:{light:'summer',medium:'spring',olive:'autumn',dark:'winter'}};
 var season=matrix[undertone][skinTone];
 var confidence=Math.min(0.92,0.55+Math.abs(warmScore)*0.018+(contrastVal/255)*0.15);
-resolve({color_type:season,confidence_score:parseFloat(confidence.toFixed(2)),skin_tone:skinTone,undertone:undertone,hair_color:estimateHairColor(imageData),eye_color:estimateEyeColor(imageData),contrast_level:contrast});
+resolve({color_type:season,confidence_score:parseFloat(confidence.toFixed(2)),skin_tone:skinTone,undertone:undertone,hair_color:estHair(imageData),eye_color:estEye(imageData),contrast_level:contrast});
 });
 };
-function estimateHairColor(imageData){var W=imageData.width,H=imageData.height,d=imageData.data,sumR=0,sumG=0,sumB=0,cnt=0,y1=Math.floor(H*0.18),x0=Math.floor(W*0.25),x1=Math.floor(W*0.75);for(var y=0;y<y1;y++)for(var x=x0;x<x1;x++){var i=(y*W+x)*4;sumR+=d[i];sumG+=d[i+1];sumB+=d[i+2];cnt++;}if(!cnt)return{ru:'неизвестно',en:'unknown'};var hsv=window.rgbToHsv(sumR/cnt,sumG/cnt,sumB/cnt);if(hsv.v<0.25)return{ru:'чёрные',en:'black'};if(hsv.v>0.80&&hsv.s<0.20)return{ru:'светлые',en:'blonde'};if(hsv.h<40&&hsv.s>0.20)return{ru:'рыжие',en:'red'};if(hsv.v<0.55)return{ru:'тёмно-коричневые',en:'dark brown'};return{ru:'коричневые',en:'brown'};}
-function estimateEyeColor(imageData){var W=imageData.width,H=imageData.height,d=imageData.data,sumR=0,sumG=0,sumB=0,cnt=0,y0=Math.floor(H*0.30),y1=Math.floor(H*0.45),x0=Math.floor(W*0.20),x1=Math.floor(W*0.80);for(var y=y0;y<y1;y++)for(var x=x0;x<x1;x++){var i=(y*W+x)*4;if(d[i]>200&&d[i+1]>200&&d[i+2]>200)continue;sumR+=d[i];sumG+=d[i+1];sumB+=d[i+2];cnt++;}if(!cnt)return{ru:'неизвестно',en:'unknown'};var hsv=window.rgbToHsv(sumR/cnt,sumG/cnt,sumB/cnt);if(hsv.v<0.30)return{ru:'тёмно-карие',en:'dark brown'};if(hsv.h>180&&hsv.h<260)return{ru:'голубые',en:'blue'};if(hsv.h>=80&&hsv.h<=160)return{ru:'зелёные',en:'green'};if(hsv.h<50&&hsv.s>0.20)return{ru:'ореховые',en:'hazel'};return{ru:'карие',en:'brown'};}
+function estHair(imageData){var W=imageData.width,H=imageData.height,d=imageData.data,sumR=0,sumG=0,sumB=0,cnt=0,y1=Math.floor(H*0.18),x0=Math.floor(W*0.25),x1=Math.floor(W*0.75);for(var y=0;y<y1;y++)for(var x=x0;x<x1;x++){var i=(y*W+x)*4;sumR+=d[i];sumG+=d[i+1];sumB+=d[i+2];cnt++;}if(!cnt)return{ru:'неизвестно',en:'unknown'};var hsv=window.rgbToHsv(sumR/cnt,sumG/cnt,sumB/cnt);if(hsv.v<0.25)return{ru:'чёрные',en:'black'};if(hsv.v>0.80&&hsv.s<0.20)return{ru:'светлые',en:'blonde'};if(hsv.h<40&&hsv.s>0.20)return{ru:'рыжие',en:'red'};if(hsv.v<0.55)return{ru:'тёмно-коричневые',en:'dark brown'};return{ru:'коричневые',en:'brown'};}
+function estEye(imageData){var W=imageData.width,H=imageData.height,d=imageData.data,sumR=0,sumG=0,sumB=0,cnt=0,y0=Math.floor(H*0.30),y1=Math.floor(H*0.45),x0=Math.floor(W*0.20),x1=Math.floor(W*0.80);for(var y=y0;y<y1;y++)for(var x=x0;x<x1;x++){var i=(y*W+x)*4;if(d[i]>200&&d[i+1]>200&&d[i+2]>200)continue;sumR+=d[i];sumG+=d[i+1];sumB+=d[i+2];cnt++;}if(!cnt)return{ru:'неизвестно',en:'unknown'};var hsv=window.rgbToHsv(sumR/cnt,sumG/cnt,sumB/cnt);if(hsv.v<0.30)return{ru:'тёмно-карие',en:'dark brown'};if(hsv.h>180&&hsv.h<260)return{ru:'голубые',en:'blue'};if(hsv.h>=80&&hsv.h<=160)return{ru:'зелёные',en:'green'};if(hsv.h<50&&hsv.s>0.20)return{ru:'ореховые',en:'hazel'};return{ru:'карие',en:'brown'};}
 
 /* ═══════════════════════════════════════════════
 CLOTHING ANALYSIS
@@ -310,13 +363,10 @@ window.getDominantClothingColor=function(imageData){var W=imageData.width,H=imag
 window.analyzeClothing=function(imgObj,seasonId){
 return new Promise(function(resolve){
 var imageData=window.getImageData(imgObj),color=window.getDominantClothingColor(imageData),hsv=window.rgbToHsv(color.r,color.g,color.b),lab=window.rgbToLab(color.r,color.g,color.b);
-var temp=lab.b>8?'warm':lab.b<-4?'cool':'neutral';
-var brightness=lab.L>65?'light':lab.L>40?'medium':'dark';
-var saturation=hsv.s<0.22?'muted':hsv.s<0.58?'medium':'bright';
-var colorKey=window.getColorKey(hsv.h,hsv.s,hsv.v);
-var palette=window.SEASON_PALETTES_LAB[seasonId],distances=palette.map(function(ref){return window.deltaE(lab,ref);}),minDist=Math.min.apply(null,distances);
-var s=window.SEASONS[seasonId],isWarm=(seasonId==='spring'||seasonId==='autumn');
-var tempBonus=0;if(isWarm&&temp==='warm')tempBonus=8;if(isWarm&&temp==='cool')tempBonus=-8;if(!isWarm&&temp==='cool')tempBonus=8;if(!isWarm&&temp==='warm')tempBonus=-8;
+var temp=lab.b>8?'warm':lab.b<-4?'cool':'neutral',brightness=lab.L>65?'light':lab.L>40?'medium':'dark',saturation=hsv.s<0.22?'muted':hsv.s<0.58?'medium':'bright';
+var colorKey=window.getColorKey(hsv.h,hsv.s,hsv.v),palette=window.SEASON_PALETTES_LAB[seasonId],distances=palette.map(function(ref){return window.deltaE(lab,ref);}),minDist=Math.min.apply(null,distances);
+var s=window.SEASONS[seasonId],isWarm=(seasonId==='spring'||seasonId==='autumn'),tempBonus=0;
+if(isWarm&&temp==='warm')tempBonus=8;if(isWarm&&temp==='cool')tempBonus=-8;if(!isWarm&&temp==='cool')tempBonus=8;if(!isWarm&&temp==='warm')tempBonus=-8;
 var satBonus=0;if((seasonId==='spring'||seasonId==='winter')&&saturation==='bright')satBonus=5;if((seasonId==='summer'||seasonId==='autumn')&&saturation==='muted')satBonus=5;if((seasonId==='summer'||seasonId==='autumn')&&saturation==='bright')satBonus=-5;
 var score=Math.round(Math.max(0,Math.min(100,100-minDist*1.6+tempBonus+satBonus))),verdict=score>=75?'fits':score>=45?'neutral':'not_fits';
 var aspectRatio=imageData.width/imageData.height,category=aspectRatio>1.4?{ru:'верх',en:'top'}:aspectRatio<0.6?{ru:'платье',en:'dress'}:{ru:'другое',en:'other'};
@@ -329,11 +379,27 @@ resolve({color_key:colorKey,color_temperature:temp,brightness:brightness,saturat
 const {useState,useEffect,useRef,useCallback}=React;
 
 function useLang(){
-const [lang,setLang]=useState(window.LANG);
+const[lang,setLang]=useState(window.LANG);
 useEffect(()=>{window.__langCallback=setLang;return()=>{window.__langCallback=null;};},[]);
 const t=key=>window.T[lang][key]||window.T['ru'][key]||key;
 const s=obj=>typeof obj==='object'&&obj!==null?(obj[lang]||obj['ru']):obj;
 return{lang,t,s};
+}
+
+/* ── Helpers ── */
+function getErrMsg(errCode, lang) {
+const map = {
+format: {ru:'errFormat', en:'errFormat'},
+size: {ru:'errSize', en:'errSize'},
+canvas_security: {ru:'errSecurity', en:'errSecurity'},
+reader: {ru:'errReader', en:'errReader'},
+image: {ru:'errImage', en:'errImage'},
+heic_convert_failed:{ru:'errHeic', en:'errHeic'},
+heic_lib_missing: {ru:'errHeic', en:'errHeic'},
+canvas: {ru:'errReader', en:'errReader'},
+};
+const key = (map[errCode]||{ru:'errReader',en:'errReader'})[lang]||'errReader';
+return window.T[lang][key]||window.T['ru'][key];
 }
 
 /* ── UI Atoms ── */
@@ -343,14 +409,41 @@ return(<button onClick={disabled?undefined:onClick} style={{...(st[variant]||st.
 }
 function Chip({verdict,t}){const m={fits:{label:t('verdictFits'),bg:'#e8f5e9',c:'#2e7d32',b:'#a5d6a7'},neutral:{label:t('verdictNeutral'),bg:'#fff8e1',c:'#f57f17',b:'#ffe082'},not_fits:{label:t('verdictNot'),bg:'#fce4ec',c:'#b71c1c',b:'#f48fb1'}};const v=m[verdict]||m.neutral;return(<span style={{display:'inline-block',background:v.bg,color:v.c,border:'1px solid '+v.b,borderRadius:20,padding:'4px 14px',fontSize:13,letterSpacing:'0.02em'}}>{v.label}</span>);}
 function Score({n,t}){const c=n>=75?'#2e7d32':n>=45?'#f57f17':'#b71c1c';return(<div style={{width:'100%'}}><div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}><span style={{fontSize:12,color:'#888880'}}>{t('scoreLabel')}</span><span style={{fontSize:12,color:c}}>{n}/100</span></div><div style={{height:4,background:'#e8e4dc',borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:n+'%',background:c,borderRadius:2,transition:'width 1.2s ease'}}/></div></div>);}
-function Drop({onSelect,preview,label,sub}){const ref=useRef(null);const[drag,setDrag]=useState(false);const handle=useCallback(f=>{if(f)onSelect(f);},[onSelect]);return(<div onClick={()=>ref.current&&ref.current.click()} onDragOver={e=>{e.preventDefault();setDrag(true);}} onDragLeave={()=>setDrag(false)} onDrop={e=>{e.preventDefault();setDrag(false);handle(e.dataTransfer.files[0]);}} style={{border:'1.5px dashed '+(drag?'#888880':'#c8c4bc'),borderRadius:10,cursor:'pointer',overflow:'hidden',background:drag?'#f5f2eb':'transparent',transition:'all 0.15s',minHeight:160,display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>{preview?<img src={preview} style={{width:'100%',maxHeight:280,objectFit:'contain'}}/>:<div style={{textAlign:'center',padding:'2rem 1rem'}}><div style={{fontSize:28,marginBottom:10}}>📷</div><div style={{fontSize:14,color:'#444440',marginBottom:4}}>{label}</div>{sub&&<div style={{fontSize:12,color:'#aaa'}}>{sub}</div>}</div>}<input ref={ref} type="file" accept="image/*" style={{display:'none'}} onChange={e=>handle(e.target.files[0])}/></div>);}
-function Spin(){return <span style={{display:'inline-block',width:16,height:16,borderRadius:'50%',border:'2px solid #c8c4bc',borderTopColor:'#1a1a18',animation:'spin 0.7s linear infinite'}}/>;}
 function Card({children,style={}}){return <div style={{background:'#fff',border:'1px solid #e8e4dc',borderRadius:10,padding:'1rem 1.25rem',...style}}>{children}</div>;}
 function Lbl({children}){return <div style={{fontSize:11,color:'#aaa8a0',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6}}>{children}</div>;}
+function Spin(){return <span style={{display:'inline-block',width:16,height:16,borderRadius:'50%',border:'2px solid #c8c4bc',borderTopColor:'#1a1a18',animation:'spin 0.7s linear infinite'}}/>;}
+
+/* ── Drop zone с поддержкой HEIC ── */
+function Drop({onSelect,onConvertStatus,preview,label,sub,converting}){
+const ref=useRef(null);
+const[drag,setDrag]=useState(false);
+const handle=useCallback(f=>{if(f)onSelect(f);},[onSelect]);
+return(
+<div onClick={()=>!converting&&ref.current&&ref.current.click()}
+onDragOver={e=>{e.preventDefault();setDrag(true);}}
+onDragLeave={()=>setDrag(false)}
+onDrop={e=>{e.preventDefault();setDrag(false);if(!converting)handle(e.dataTransfer.files[0]);}}
+style={{border:'1.5px dashed '+(drag?'#888880':'#c8c4bc'),borderRadius:10,cursor:converting?'default':'pointer',overflow:'hidden',background:drag?'#f5f2eb':'transparent',transition:'all 0.15s',minHeight:160,display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
+{converting
+? <div style={{textAlign:'center',padding:'2rem 1rem'}}>
+<div style={{marginBottom:12,display:'flex',justifyContent:'center'}}><Spin/></div>
+<div style={{fontSize:13,color:'#888880'}}>{converting}</div>
+</div>
+: preview
+? <img src={preview} style={{width:'100%',maxHeight:280,objectFit:'contain'}}/>
+: <div style={{textAlign:'center',padding:'2rem 1rem'}}>
+<div style={{fontSize:28,marginBottom:10}}>📷</div>
+<div style={{fontSize:14,color:'#444440',marginBottom:4}}>{label}</div>
+{sub&&<div style={{fontSize:12,color:'#aaa'}}>{sub}</div>}
+</div>
+}
+<input ref={ref} type="file" accept="image/*,.heic,.heif" style={{display:'none'}} onChange={e=>handle(e.target.files[0])}/>
+</div>
+);
+}
 
 /* ── Nav ── */
 function Nav({season,onLogoClick,onSeasonClick,t,s}){
-const SEASONS=window.SEASONS;
 return(
 <nav style={{borderBottom:'1px solid #e8e4dc',padding:'1rem 1.5rem',display:'flex',alignItems:'center',gap:10,background:'#fff',position:'sticky',top:0,zIndex:10}}>
 <div onClick={onLogoClick} style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer'}}>
@@ -362,88 +455,15 @@ return(
 <span onClick={onSeasonClick} style={{marginLeft:'auto',fontSize:12,color:'#888880',fontStyle:'italic',display:'flex',alignItems:'center',gap:6,cursor:'pointer',padding:'4px 8px',borderRadius:6,transition:'background 0.15s'}}
 onMouseEnter={e=>e.currentTarget.style.background='#f5f2eb'}
 onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-<span style={{width:8,height:8,borderRadius:'50%',background:SEASONS[season].accent,display:'inline-block'}}/>
-{s(SEASONS[season].name)}
+<span style={{width:8,height:8,borderRadius:'50%',background:window.SEASONS[season].accent,display:'inline-block'}}/>
+{s(window.SEASONS[season].name)}
 </span>
 )}
 </nav>
 );
 }
 
-/* ── HOME PAGE (для пользователей с цветотипом) ── */
-function HomePage({season,history,onAnalyze,onHistory,onChangeType,t,s}){
-const ss=window.SEASONS[season];
-return(
-<div className="fade" style={{maxWidth:480,margin:'0 auto',padding:'2rem 1.5rem 5rem'}}>
-{/* Приветствие и цветотип */}
-<div style={{marginBottom:'1.5rem'}}>
-<p style={{fontSize:13,color:'#888880',marginBottom:4}}>{t('homeSubtitle')}</p>
-<h1 style={{fontSize:28,fontWeight:400,letterSpacing:'-0.02em'}}>{t('homeTitle')}</h1>
-</div>
-
-{/* Карточка цветотипа */}
-<Card style={{background:ss.bg,border:'2px solid '+ss.accent+'40',marginBottom:'1.25rem',padding:'1.25rem'}}>
-<div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:'1rem'}}>
-<div>
-<div style={{fontSize:24,fontWeight:400,marginBottom:2}}>{s(ss.name)}</div>
-<div style={{fontSize:13,color:'#888880',fontStyle:'italic'}}>{s(ss.label)}</div>
-</div>
-<div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'flex-end',maxWidth:140}}>
-{ss.swatches.map(c=><div key={c} style={{width:22,height:22,borderRadius:4,background:c}}/>)}
-</div>
-</div>
-<div style={{fontSize:13,color:'#666660',fontStyle:'italic',marginBottom:'1rem',lineHeight:1.6}}>{s(ss.tagline)}</div>
-<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-<div>
-<div style={{fontSize:10,color:'#aaa8a0',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{t('homeBestColors')}</div>
-<div style={{fontSize:12,color:'#555550',lineHeight:1.6}}>{s(ss.best)}</div>
-</div>
-<div>
-<div style={{fontSize:10,color:'#aaa8a0',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{t('homeAvoid')}</div>
-<div style={{fontSize:12,color:'#555550',lineHeight:1.6}}>{s(ss.avoid)}</div>
-</div>
-</div>
-</Card>
-
-{/* Действия */}
-<div style={{display:'flex',flexDirection:'column',gap:10}}>
-<button onClick={onAnalyze} style={{background:'#1a1a18',color:'#fafaf8',border:'none',borderRadius:10,padding:'1.1rem 1.5rem',cursor:'pointer',textAlign:'left',display:'flex',alignItems:'center',gap:14,fontFamily:'Georgia,serif',transition:'opacity 0.15s'}}
-onMouseEnter={e=>e.currentTarget.style.opacity='0.88'}
-onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
-<span style={{fontSize:22}}>👗</span>
-<div>
-<div style={{fontSize:15,marginBottom:2}}>{t('homeAnalyze')}</div>
-<div style={{fontSize:12,color:'#c8c4bc'}}>{t('analyzeDesc')}</div>
-</div>
-<span style={{marginLeft:'auto',fontSize:18,opacity:0.5}}>→</span>
-</button>
-
-{history.length>0&&(
-<button onClick={onHistory} style={{background:'#fff',border:'1px solid #e8e4dc',borderRadius:10,padding:'1rem 1.5rem',cursor:'pointer',textAlign:'left',display:'flex',alignItems:'center',gap:14,fontFamily:'Georgia,serif',transition:'background 0.15s'}}
-onMouseEnter={e=>e.currentTarget.style.background='#f5f2eb'}
-onMouseLeave={e=>e.currentTarget.style.background='#fff'}>
-<span style={{fontSize:22}}>📋</span>
-<div>
-<div style={{fontSize:15,color:'#1a1a18',marginBottom:2}}>{t('homeHistory')}</div>
-<div style={{fontSize:12,color:'#888880'}}>{history.length} {window.LANG==='ru'?'анализов':'analyses'}</div>
-</div>
-<span style={{marginLeft:'auto',fontSize:18,opacity:0.3}}>→</span>
-</button>
-)}
-
-<button onClick={onChangeType} style={{background:'transparent',border:'1px solid #e8e4dc',borderRadius:10,padding:'1rem 1.5rem',cursor:'pointer',textAlign:'left',display:'flex',alignItems:'center',gap:14,fontFamily:'Georgia,serif',transition:'background 0.15s'}}
-onMouseEnter={e=>e.currentTarget.style.background='#f5f2eb'}
-onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-<span style={{fontSize:22}}>🔄</span>
-<div style={{fontSize:15,color:'#1a1a18'}}>{t('homeChangeType')}</div>
-<span style={{marginLeft:'auto',fontSize:18,opacity:0.3}}>→</span>
-</button>
-</div>
-</div>
-);
-}
-
-/* ── WELCOME (для новых пользователей) ── */
+/* ── Screens ── */
 function Welcome({onStart,t}){
 return(
 <div className="fade" style={{maxWidth:420,margin:'0 auto',padding:'4rem 1.5rem 3rem',textAlign:'center'}}>
@@ -461,7 +481,59 @@ return(
 );
 }
 
-function Setup({onManual,onPhoto,onBack,t,hasSeason}){
+function HomePage({season,history,onAnalyze,onHistory,onChangeType,t,s}){
+const ss=window.SEASONS[season];
+return(
+<div className="fade" style={{maxWidth:480,margin:'0 auto',padding:'2rem 1.5rem 5rem'}}>
+<div style={{marginBottom:'1.5rem'}}>
+<p style={{fontSize:13,color:'#888880',marginBottom:4}}>{t('homeSubtitle')}</p>
+<h1 style={{fontSize:28,fontWeight:400,letterSpacing:'-0.02em'}}>{t('homeTitle')}</h1>
+</div>
+<Card style={{background:ss.bg,border:'2px solid '+ss.accent+'40',marginBottom:'1.25rem',padding:'1.25rem'}}>
+<div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:'1rem',flexWrap:'wrap',gap:8}}>
+<div>
+<div style={{fontSize:24,fontWeight:400,marginBottom:2}}>{s(ss.name)}</div>
+<div style={{fontSize:13,color:'#888880',fontStyle:'italic'}}>{s(ss.label)}</div>
+</div>
+<div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'flex-end'}}>
+{ss.swatches.map(c=><div key={c} style={{width:22,height:22,borderRadius:4,background:c}}/>)}
+</div>
+</div>
+<div style={{fontSize:13,color:'#666660',fontStyle:'italic',marginBottom:'1rem',lineHeight:1.6}}>{s(ss.tagline)}</div>
+<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+<div>
+<div style={{fontSize:10,color:'#aaa8a0',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{t('homeBestColors')}</div>
+<div style={{fontSize:12,color:'#555550',lineHeight:1.6}}>{s(ss.best)}</div>
+</div>
+<div>
+<div style={{fontSize:10,color:'#aaa8a0',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{t('homeAvoid')}</div>
+<div style={{fontSize:12,color:'#555550',lineHeight:1.6}}>{s(ss.avoid)}</div>
+</div>
+</div>
+</Card>
+<div style={{display:'flex',flexDirection:'column',gap:10}}>
+{[
+{ico:'👗',title:t('homeAnalyze'),desc:t('analyzeDesc'),fn:onAnalyze,dark:true},
+...(history.length>0?[{ico:'📋',title:t('homeHistory'),desc:history.length+' '+(window.LANG==='ru'?'анализов':'analyses'),fn:onHistory,dark:false}]:[]),
+{ico:'🔄',title:t('homeChangeType'),desc:'',fn:onChangeType,dark:false},
+].map(item=>(
+<button key={item.title} onClick={item.fn} style={{background:item.dark?'#1a1a18':'#fff',color:item.dark?'#fafaf8':'#1a1a18',border:item.dark?'none':'1px solid #e8e4dc',borderRadius:10,padding:'1rem 1.25rem',cursor:'pointer',textAlign:'left',display:'flex',alignItems:'center',gap:14,fontFamily:'Georgia,serif',transition:'opacity 0.15s'}}
+onMouseEnter={e=>e.currentTarget.style.opacity='0.85'}
+onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
+<span style={{fontSize:22}}>{item.ico}</span>
+<div style={{flex:1}}>
+<div style={{fontSize:15,marginBottom:item.desc?2:0}}>{item.title}</div>
+{item.desc&&<div style={{fontSize:12,opacity:0.6}}>{item.desc}</div>}
+</div>
+<span style={{fontSize:18,opacity:0.4}}>→</span>
+</button>
+))}
+</div>
+</div>
+);
+}
+
+function Setup({onManual,onPhoto,onBack,t}){
 return(
 <div className="fade" style={{maxWidth:420,margin:'0 auto',padding:'2.5rem 1.5rem'}}>
 <Btn onClick={onBack} variant="ghost">{t('back')}</Btn>
@@ -503,28 +575,53 @@ return(
 );
 }
 
-function PhotoScreen({onDetected,onBack,setErr,t}){
+/* ── PhotoScreen с поддержкой HEIC ── */
+function PhotoScreen({onDetected,onBack,setErr,t,lang}){
 const[imgObj,setImgObj]=useState(null);
 const[loading,setLoading]=useState(false);
+const[converting,setConverting]=useState(null);
+
 const go=async f=>{
-try{const r=await window.compressImage(f);setImgObj(r);}
-catch(e){const msgs={ru:{format:'❌ Формат не поддерживается. Используйте JPG или PNG.',size:'❌ Файл слишком большой.',canvas_security:'❌ Браузер блокирует доступ. Откройте сайт через http://',reader:'❌ Не удалось прочитать файл.',image:'❌ Файл повреждён.'},en:{format:'❌ Format not supported. Use JPG or PNG.',size:'❌ File too large.',canvas_security:'❌ Browser blocked access. Open via http://',reader:'❌ Could not read file.',image:'❌ File corrupted.'}};const lang=window.LANG||'ru';const code=e.message?e.message.split(':')[0]:'reader';setErr((msgs[lang]||msgs['ru'])[code]||(msgs[lang]||msgs['ru'])['reader']);}
+setConverting(null);
+try{
+const r=await window.compressImage(f, status=>{
+if(status==='converting') setConverting(t('convertingHeic'));
+else setConverting(null);
+});
+setConverting(null);
+setImgObj(r);
+} catch(e){
+setConverting(null);
+const code=e.message?e.message.split(':')[0]:'reader';
+setErr(getErrMsg(code, lang||window.LANG));
+}
 };
+
 const detect=async()=>{
 if(!imgObj)return;setLoading(true);
 try{const r=await window.detectColorType(imgObj);onDetected(r);}
 catch(e){setErr(t('detectionFailed'));}
 setLoading(false);
 };
+
 return(
 <div className="fade" style={{maxWidth:420,margin:'0 auto',padding:'2.5rem 1.5rem'}}>
 <Btn onClick={onBack} variant="ghost">{t('back')}</Btn>
 <h2 style={{fontSize:22,fontWeight:400,margin:'12px 0 6px'}}>{t('uploadPhotoTitle')}</h2>
 <p style={{fontSize:13,color:'#888880',marginBottom:'0.5rem',lineHeight:1.5}}>{t('uploadPhotoDesc')}</p>
-<div style={{background:'#f5f2eb',borderRadius:8,padding:'8px 12px',fontSize:12,color:'#888880',marginBottom:'1rem'}}>{t('photoTip')}</div>
-<Drop onSelect={go} preview={imgObj&&imgObj.preview} label={t('uploadSelfie')} sub={t('uploadSelfieHint')}/>
+<div style={{background:'#f5f2eb',borderRadius:8,padding:'8px 12px',fontSize:12,color:'#888880',marginBottom:'1rem'}}>
+{t('photoTip')}
+</div>
+{/* Подсказка про HEIC */}
+<div style={{background:'#f0f4fa',borderRadius:8,padding:'8px 12px',fontSize:12,color:'#7A96B8',marginBottom:'1rem',display:'flex',alignItems:'center',gap:6}}>
+<span>📱</span>
+<span>{t('uploadSelfieHint')} — {t('uploadSelfieHintConvert')}</span>
+</div>
+<Drop onSelect={go} preview={imgObj&&imgObj.preview} label={t('uploadSelfie')} sub="JPG · PNG · HEIC" converting={converting}/>
 <div style={{marginTop:'1rem'}}>
-<Btn onClick={detect} full disabled={!imgObj||loading}>{loading?<span><Spin/>&nbsp;{t('detecting')}</span>:t('detectBtn')}</Btn>
+<Btn onClick={detect} full disabled={!imgObj||loading||!!converting}>
+{loading?<span><Spin/>&nbsp;{t('detecting')}</span>:t('detectBtn')}
+</Btn>
 </div>
 </div>
 );
@@ -533,16 +630,14 @@ return(
 function Detected({d,onConfirm,onOverride,onBack,t,s}){
 const season=window.SEASONS[d.color_type];
 const conf=Math.round(d.confidence_score*100);
-const loc=(val)=>({warm:t('warm'),cool:t('cool'),neutral:t('neutral'),light:t('light'),medium:t('medium'),dark:t('dark'),olive:t('olive'),high:t('high'),low:t('low')}[val]||val);
-const ls=(obj)=>typeof obj==='object'?s(obj):obj;
+const loc=v=>({warm:t('warm'),cool:t('cool'),neutral:t('neutral'),light:t('light'),medium:t('medium'),dark:t('dark'),olive:t('olive'),high:t('high'),low:t('low')}[v]||v);
+const ls=obj=>typeof obj==='object'?s(obj):obj;
 return(
 <div className="fade" style={{maxWidth:480,margin:'0 auto',padding:'2rem 1.5rem 5rem'}}>
 <Btn onClick={onBack} variant="ghost">{t('back')}</Btn>
-
-{/* Блок 1: Цветотип */}
 <Card style={{background:season.bg,border:'1px solid '+season.accent+'40',marginBottom:'1rem',marginTop:'1rem'}}>
 <Lbl>{t('detectedType')}</Lbl>
-<div style={{fontSize:28,fontWeight:400,marginBottom:4,letterSpacing:'-0.01em'}}>{s(season.name)}</div>
+<div style={{fontSize:28,fontWeight:400,marginBottom:4}}>{s(season.name)}</div>
 <div style={{fontSize:14,color:'#666660',marginBottom:'1rem',fontStyle:'italic'}}>{s(season.label)} · {s(season.tagline)}</div>
 <div style={{display:'flex',gap:8,marginBottom:'1rem',flexWrap:'wrap'}}>{season.swatches.map(c=><div key={c} style={{width:26,height:26,borderRadius:4,background:c}}/>)}</div>
 <div style={{display:'flex',alignItems:'center',gap:10}}>
@@ -550,8 +645,6 @@ return(
 <span style={{fontSize:12,color:'#888880',whiteSpace:'nowrap'}}>{conf}{t('confidence')}</span>
 </div>
 </Card>
-
-{/* Блок 2: Детали анализа */}
 <Card style={{marginBottom:'1rem'}}>
 <Lbl>{t('analysisDetails')}</Lbl>
 <div style={{fontSize:13,color:'#555550',lineHeight:1.8}}>
@@ -560,33 +653,22 @@ return(
 <div>{t('contrast')}: <b style={{fontWeight:400,color:'#1a1a18'}}>{loc(d.contrast_level)}</b></div>
 </div>
 </Card>
-
-{/* Блок 3: Профиль цветотипа (новый) */}
 <Card style={{marginBottom:'1rem',borderLeft:'3px solid '+season.accent}}>
 <Lbl>{t('seasonProfile')}</Lbl>
 <p style={{fontSize:13,color:'#444440',lineHeight:1.7,marginBottom:'1rem'}}>{s(season.description)}</p>
-
 <div style={{marginBottom:'0.75rem'}}>
 <div style={{fontSize:11,color:'#aaa8a0',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6}}>{t('seasonKeywords')}</div>
-<div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-{s(season.keywords).map(kw=>(
-<span key={kw} style={{background:season.bg,color:season.accent,border:'1px solid '+season.accent+'50',borderRadius:20,padding:'3px 12px',fontSize:12}}>{kw}</span>
-))}
+<div style={{display:'flex',flexWrap:'wrap',gap:6}}>{s(season.keywords).map(kw=>(<span key={kw} style={{background:season.bg,color:season.accent,border:'1px solid '+season.accent+'50',borderRadius:20,padding:'3px 12px',fontSize:12}}>{kw}</span>))}</div>
 </div>
-</div>
-
 <div style={{marginBottom:'0.75rem'}}>
 <div style={{fontSize:11,color:'#aaa8a0',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{t('seasonMakeup')}</div>
 <div style={{fontSize:12,color:'#555550',lineHeight:1.6}}>{s(season.makeup)}</div>
 </div>
-
 <div>
 <div style={{fontSize:11,color:'#aaa8a0',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{t('seasonNeutral')}</div>
 <div style={{fontSize:12,color:'#555550',lineHeight:1.6}}>{s(season.neutrals)}</div>
 </div>
 </Card>
-
-{/* Лучшие/избегать */}
 <Card style={{marginBottom:'1rem'}}>
 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
 <div>
@@ -599,7 +681,6 @@ return(
 </div>
 </div>
 </Card>
-
 <div style={{background:'#fff8e1',border:'1px solid #ffe082',borderRadius:8,padding:'8px 12px',fontSize:12,color:'#795548',marginBottom:'1rem'}}>{t('approxWarning')}</div>
 <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
 <Btn onClick={()=>onConfirm(d.color_type)} full>{t('confirmType')}</Btn>
@@ -609,19 +690,31 @@ return(
 );
 }
 
-function AnalyzePage({season,onAnalyze,onBack,t,s}){
+/* ── AnalyzePage с поддержкой HEIC ── */
+function AnalyzePage({season,onAnalyze,onBack,t,s,lang}){
 const ss=window.SEASONS[season];
 const[imgObj,setImgObj]=useState(null);
 const[err2,setErr2]=useState(null);
+const[converting,setConverting]=useState(null);
+
 const go=async f=>{
-try{const r=await window.compressImage(f);setImgObj(r);setErr2(null);}
-catch(e){setErr2(t('cannotRead'));}
+setConverting(null);setErr2(null);
+try{
+const r=await window.compressImage(f, status=>{
+if(status==='converting') setConverting(t('convertingHeic'));
+else setConverting(null);
+});
+setConverting(null);setImgObj(r);
+} catch(e){
+setConverting(null);
+const code=e.message?e.message.split(':')[0]:'reader';
+setErr2(getErrMsg(code, lang||window.LANG));
+}
 };
+
 return(
 <div className="fade" style={{maxWidth:480,margin:'0 auto',padding:'2rem 1.5rem'}}>
 <Btn onClick={onBack} variant="ghost">{t('back')}</Btn>
-
-{/* Цветотип — компактно для мобильных */}
 <Card style={{background:ss.bg,border:'1px solid '+ss.accent+'30',margin:'1rem 0'}}>
 <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
 <div style={{display:'flex',gap:5}}>{ss.swatches.slice(0,5).map(c=><div key={c} style={{width:18,height:18,borderRadius:3,background:c}}/>)}</div>
@@ -631,13 +724,17 @@ return(
 </div>
 </div>
 </Card>
-
 <h2 style={{fontSize:20,fontWeight:400,marginBottom:6}}>{t('analyzeTitle')}</h2>
-<p style={{fontSize:13,color:'#888880',marginBottom:'1rem',lineHeight:1.5}}>{t('analyzeDesc')}</p>
-<Drop onSelect={go} preview={imgObj&&imgObj.preview} label={t('uploadClothing')} sub={t('uploadClothingHint')}/>
-{err2&&<div style={{fontSize:12,color:'#b71c1c',marginTop:6}}>{err2}</div>}
+<p style={{fontSize:13,color:'#888880',marginBottom:'0.5rem',lineHeight:1.5}}>{t('analyzeDesc')}</p>
+{/* Подсказка про HEIC */}
+<div style={{background:'#f0f4fa',borderRadius:8,padding:'8px 12px',fontSize:12,color:'#7A96B8',marginBottom:'1rem',display:'flex',alignItems:'center',gap:6}}>
+<span>📱</span>
+<span>JPG · PNG · HEIC — {t('uploadSelfieHintConvert')}</span>
+</div>
+<Drop onSelect={go} preview={imgObj&&imgObj.preview} label={t('uploadClothing')} sub="JPG · PNG · HEIC" converting={converting}/>
+{err2&&<div style={{fontSize:12,color:'#b71c1c',marginTop:8,lineHeight:1.5}}>{err2}</div>}
 <div style={{marginTop:'1rem'}}>
-<Btn onClick={()=>imgObj&&onAnalyze(imgObj,imgObj.preview)} full disabled={!imgObj}>{t('analyzeBtn')}</Btn>
+<Btn onClick={()=>imgObj&&onAnalyze(imgObj,imgObj.preview)} full disabled={!imgObj||!!converting}>{t('analyzeBtn')}</Btn>
 </div>
 </div>
 );
@@ -657,8 +754,7 @@ function Result({result,preview,season,onBack,t,s,lang}){
 const ss=window.SEASONS[season];
 const colorName=window.COLOR_NAMES[result.color_key]?s(window.COLOR_NAMES[result.color_key]):result.color_key;
 const colorNameCap=colorName.charAt(0).toUpperCase()+colorName.slice(1);
-const seasonName=s(result.season_name);
-const tempLocal=t(result.color_temperature),satLocal=t(result.saturation);
+const seasonName=s(result.season_name),tempLocal=t(result.color_temperature),satLocal=t(result.saturation);
 const bestColors=s(result.season_best)||'';
 const explanations={
 fits:lang==='ru'?`${colorNameCap} прекрасно вписывается в палитру «${seasonName}» — ${tempLocal} температура и ${satLocal} насыщенность подчёркивают вашу внешность.`:`${colorNameCap} sits beautifully within your ${seasonName} palette — the ${tempLocal} temperature and ${satLocal} saturation complement your natural coloring.`,
@@ -754,17 +850,18 @@ return(
 <>
 <Nav season={season} onLogoClick={goHome} onSeasonClick={go('setup')} t={t} s={s}/>
 {err&&(
-<div style={{background:'#fce4ec',border:'1px solid #f48fb1',borderRadius:8,padding:'10px 16px',margin:'1rem 1.5rem',fontSize:13,color:'#b71c1c',display:'flex',justifyContent:'space-between'}}>
-<span>{err}</span><span style={{cursor:'pointer',marginLeft:10}} onClick={()=>setErr(null)}>×</span>
+<div style={{background:'#fce4ec',border:'1px solid #f48fb1',borderRadius:8,padding:'10px 16px',margin:'1rem 1.5rem',fontSize:13,color:'#b71c1c',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
+<span style={{lineHeight:1.5}}>{err}</span>
+<span style={{cursor:'pointer',flexShrink:0}} onClick={()=>setErr(null)}>×</span>
 </div>
 )}
 {screen==='welcome' &&<Welcome onStart={go('setup')} t={t}/>}
 {screen==='home' &&season&&<HomePage season={season} history={history} onAnalyze={go('analyze')} onHistory={go('history')} onChangeType={go('setup')} t={t} s={s}/>}
-{screen==='setup' &&<Setup onManual={go('manual')} onPhoto={go('photo')} onBack={goHome} t={t} hasSeason={!!season}/>}
+{screen==='setup' &&<Setup onManual={go('manual')} onPhoto={go('photo')} onBack={goHome} t={t}/>}
 {screen==='manual' &&<ManualSelect onSelect={confirmSeason} onBack={go('setup')} t={t} s={s}/>}
-{screen==='photo' &&<PhotoScreen onDetected={d=>{setDetection(d);setScreen('detected');}} onBack={go('setup')} setErr={setErr} t={t}/>}
+{screen==='photo' &&<PhotoScreen onDetected={d=>{setDetection(d);setScreen('detected');}} onBack={go('setup')} setErr={setErr} t={t} lang={lang}/>}
 {screen==='detected' &&detection&&<Detected d={detection} onConfirm={confirmSeason} onOverride={go('manual')} onBack={go('setup')} t={t} s={s}/>}
-{screen==='analyze' &&season&&<AnalyzePage season={season} onAnalyze={analyze} onBack={goHome} t={t} s={s}/>}
+{screen==='analyze' &&season&&<AnalyzePage season={season} onAnalyze={analyze} onBack={goHome} t={t} s={s} lang={lang}/>}
 {screen==='analyzing'&&<Analyzing t={t}/>}
 {screen==='result' &&result&&<Result result={result} preview={preview} season={season} onBack={go('analyze')} t={t} s={s} lang={lang}/>}
 {screen==='history' &&<History history={history} onBack={goHome} onClear={()=>{setHistory([]);setScreen('home');}} t={t} s={s}/>}
