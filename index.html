@@ -43,8 +43,8 @@ button{font-family:'Georgia',serif}
 <body>
 <div id="root"></div>
 <div id="lang-switcher">
-<button id="btn-ru" class="active" onclick="window.setLang('ru')">РУС</button>
-<button id="btn-en" onclick="window.setLang('en')">ENG</button>
+<button id="btn-ru" onclick="window.setLang('ru')">РУС</button>
+<button id="btn-en" class="active" onclick="window.setLang('en')">ENG</button>
 </div>
 
 <!-- ═══════════════════════════════════════════════
@@ -394,7 +394,7 @@ installApp:'Установить приложение',installDesc:'Добавь
 installBtn:'Установить',installDismiss:'Не сейчас',
 updateAvailable:'Доступно обновление',updateDesc:'Новая версия готова. Обновить сейчас?',updateBtn:'Обновить',
 pwaInstalled:'Приложение установлено ✓',standaloneMode:'Работает как приложение',
-offlineBadge:'офлайн',
+offlineBadge:'онлайн',
 },
 en:{
 appTagline:'Your color stylist — works offline',
@@ -1036,10 +1036,10 @@ const[preview,setPreview]=useState(null);
 const[detection,setDetection]=useState(null);
 const[err,setErr]=useState(null);
 
-/* Показываем баннер установки через 30 сек */
+/* Показываем баннер установки через 10 сек */
 useEffect(()=>{
 if(installable&&!installed){
-const timer=setTimeout(()=>setShowInstallBanner(true),30000);
+const timer=setTimeout(()=>setShowInstallBanner(true),10000);
 return()=>clearTimeout(timer);
 }
 },[installable,installed]);
