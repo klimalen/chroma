@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Chromé — подбор гардероба по цветотипу</title>
+<meta name="theme-color" content="#1a1a18"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Chromé"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="description" content="Определи свой цветотип и узнай, подходит ли одежда — работает без интернета"/>
+<meta property="og:title" content="Chromé — подбор гардероба по цветотипу"/>
+<meta property="og:description" content="Определи свой сезонный цветотип и подбери одежду по цвету"/>
+<meta property="og:type" content="website"/>
+<link id="pwa-manifest" rel="manifest"/>
+<link id="apple-touch-icon" rel="apple-touch-icon"/>
+<link rel="icon" id="favicon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231a1a18'/><text y='.9em' font-size='60' x='50' text-anchor='middle' dominant-baseline='middle' dy='10'>🎨</text></svg>"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Georgia',serif;background:#fafaf8;color:#1a1a18;min-height:100vh}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fade{animation:fadeIn 0.3s ease}
+button{font-family:'Georgia',serif}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:#f0ede6}
+::-webkit-scrollbar-thumb{background:#c8c4bc;border-radius:2px}
+#lang-switcher{position:fixed;bottom:20px;right:20px;z-index:1000;display:flex;gap:4px;background:#fff;border:1px solid #e8e4dc;border-radius:8px;padding:4px;box-shadow:0 2px 12px rgba(0,0,0,0.08)}
+#lang-switcher button{border:none;background:transparent;padding:5px 10px;font-size:12px;cursor:pointer;border-radius:5px;font-family:'Georgia',serif;color:#888880;transition:all 0.15s}
+#lang-switcher button.active{background:#1a1a18;color:#fafaf8}
+@media(max-width:480px){.mobile-stack{flex-direction:column!important;align-items:flex-start!important}.mobile-full{width:100%!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="lang-switcher">
+<button id="btn-ru" onclick="window.setLang('ru')">РУС</button>
+<button id="btn-en" onclick="window.setLang('en')">ENG</button>
+</div>
+
+<script>
+(function(){
+'use strict';
+var APP_VERSION='1.0.4';
+
+function makeIcon(size){
+var canvas=document.createElement('canvas');
+canvas.width=size;canvas.height=size;
+var ctx=canvas.getContext('2d');
+ctx.fillStyle='#1a1a18';
+ctx.beginPath();
+var r=size*0.22;
+ctx.moveTo(r,0);ctx.lineTo(size-r,0);ctx.quadraticCurveTo(size,0,size,r);
+ctx.lineTo(size,size-r);ctx.quadraticCurveTo(size,size,size-r,size);
+ctx.lineTo(r,size);ctx.quadraticCurveTo(0,size,0,size-r);
+ctx.lineTo(0,r);ctx.quadraticCurveTo(0,0,r,0);
+ctx.closePath();ctx.fill();
+ctx.font=(size*0.52)+'px serif';
+ctx.textAlign='center';ctx.textBaseline='middle';
+ctx.fillText('🎨',size/2,size/2+size*0.03);
+return canvas.toDataURL('image/png');
+}
+
+var icon192=makeIcon(192);
+var icon512=makeIcon(512);
+window._PWA_ICON_192=icon192;
+window._PWA_ICON_512=icon512;
+document.getElementById('apple-touch-icon').href=icon192;
+
+var manifest={name:'Chromé',short_name:'Chromé',description:'Определи свой цветотип и анализируй одежду без интернета',start_url:window.location.href,scope:window.location.origin+'/',display:'standalone',orientation:'portrait-primary',background_color:'#fafaf8',theme_color:'#1a1a18',lang:'ru',categories:['lifestyle','fashion'],icons:[{src:icon192,sizes:'192x192',type:'image/png',purpose:'any maskable'},{src:icon512,sizes:'512x512',type:'image/png',purpose:'any maskable'}],shortcuts:[{name:'Проверить образ',short_name:'Анализ',description:'Быстрый анализ предмета одежды',url:window.location.href+'#analyze',icons:[{src:icon192,sizes:'192x192'}]}]};
+var mBlob=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
+document.getElementById('pwa-manifest').href=URL.createObjectURL(mBlob);
+
+var swCode='var CACHE_NAME="chrome-wardrobe-v'+APP_VERSION+'";var OFFLINE_URL=self.location.href;var PRECACHE_URLS=[self.location.href,"https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js","https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js","https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"];self.addEventListener("install",function(e){e.waitUntil(caches.open(CACHE_NAME).then(function(c){return Promise.allSettled(PRECACHE_URLS.map(function(u){return c.add(u).catch(function(){});}));}).then(function(){return self.skipWaiting();}));});self.addEventListener("activate",function(e){e.waitUntil(caches.keys().then(function(ns){return Promise.all(ns.filter(function(n){return n.startsWith("chrome-wardrobe-")&&n!==CACHE_NAME;}).map(function(n){return caches.delete(n);}));}).then(function(){return self.clients.claim();}));});self.addEventListener("fetch",function(e){if(e.request.method!=="GET")return;if(e.request.url.startsWith("chrome-extension://"))return;if(e.request.url.startsWith("blob:"))return;e.respondWith(caches.match(e.request).then(function(cached){if(cached){fetch(e.request).then(function(r){if(r&&r.status===200)caches.open(CACHE_NAME).then(function(c){c.put(e.request,r);});}).catch(function(){});return cached;}return fetch(e.request.clone()).then(function(r){if(r&&r.status===200){var cl=r.clone();caches.open(CACHE_NAME).then(function(c){c.put(e.request,cl);});}return r;}).catch(function(){return caches.match(OFFLINE_URL).then(function(f){return f||new Response("<html><body style=\'font-family:Georgia,serif;text-align:center;padding:4rem;\'><h2>🎨 Chromé</h2><p style=\'color:#888;margin-top:1rem;\'>Нет подключения к интернету.</p></body></html>",{headers:{"Content-Type":"text/html"}});});});}));});self.addEventListener("message",function(e){if(e.data&&e.data.type==="SKIP_WAITING")self.skipWaiting();});';
+
+if('serviceWorker' in navigator){
+var swBlob=new Blob([swCode],{type:'application/javascript'});
+navigator.serviceWorker.register(URL.createObjectURL(swBlob),{scope:'./'}).then(function(reg){
+window._SW_REGISTRATION=reg;
+setInterval(function(){reg.update();},30*60*1000);
+reg.addEventListener('updatefound',function(){
+var nw=reg.installing;
+nw.addEventListener('statechange',function(){
+if(nw.state==='installed'&&navigator.serviceWorker.controller)window.dispatchEvent(new CustomEvent('sw-update-available'));
+});
+});
+}).catch(function(){});
+}
+
+window._pwaInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window._pwaInstallPrompt=e;window.dispatchEvent(new CustomEvent('pwa-installable'));});
+window.addEventListener('appinstalled',function(){window._pwaInstallPrompt=null;window.dispatchEvent(new CustomEvent('pwa-installed'));});
+window.isPWAStandalone=function(){return window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true||document.referrer.includes('android-app://');};
+})();
+</script>
+
+<script>
+/* SESSION MANAGER */
+window.SessionManager=(function(){
+var SK='chrome_session_id',PK='chrome_profile',HK='chrome_history';
+function uuid(){if(typeof crypto!=='undefined'&&crypto.randomUUID)return crypto.randomUUID();return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0,v=c==='x'?r:(r&0x3|0x8);return v.toString(16);});}
+function valid(id){return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);}
+function gc(n){try{var m=document.cookie.match(new RegExp('(^|;)\\s*'+n+'\\s*=\\s*([^;]+)'));return m?m[2]:null;}catch(e){return null;}}
+function sc(n,v){try{var d=new Date();d.setTime(d.getTime()+90*24*60*60*1000);document.cookie=n+'='+v+';expires='+d.toUTCString()+';path=/;SameSite=Strict';}catch(e){}}
+function get(){var id=null;try{id=localStorage.getItem(SK);}catch(e){}if(!id||!valid(id))id=gc(SK);if(!id||!valid(id))id=uuid();try{localStorage.setItem(SK,id);}catch(e){}sc(SK,id);return id;}
+return{
+init:get,getId:get,
+saveProfile:function(sid){var p={season_id:sid,set_at:new Date().toISOString(),session_id:get()};try{localStorage.setItem(PK,JSON.stringify(p));}catch(e){}return p;},
+loadProfile:function(){try{var r=localStorage.getItem(PK);return r?JSON.parse(r):null;}catch(e){return null;}},
+saveHistory:function(items){try{localStorage.setItem(HK,JSON.stringify(items));}catch(e){}},
+loadHistory:function(){try{var r=localStorage.getItem(HK);return r?JSON.parse(r):[];}catch(e){return[];}},
+clearAll:function(){try{localStorage.removeItem(SK);localStorage.removeItem(PK);localStorage.removeItem(HK);}catch(e){}try{document.cookie=SK+'=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/';}catch(e){}return get();}
+};
+})();
+
+/* LOCALISATION */
+var _sl=null;try{_sl=localStorage.getItem('chrome_lang');}catch(e){}
+window.LANG=(_sl==='ru'||_sl==='en')?_sl:'en';
+window.setLang=function(l){window.LANG=l;try{localStorage.setItem('chrome_lang',l);}catch(e){}document.getElementById('btn-ru').className=l==='ru'?'active':'';document.getElementById('btn-en').className=l==='en'?'active':'';document.documentElement.lang=l;if(window.__langCallback)window.__langCallback(l);};
+(function(){var l=window.LANG;document.getElementById('btn-ru').className=l==='ru'?'active':'';document.getElementById('btn-en').className=l==='en'?'active':'';document.documentElement.lang=l;})();
+
+window.T={
+ru:{
+appTagline:'Ваш стилист по цвету — работает офлайн',appDesc:'Узнайте свой сезонный цветотип и подберите подходящую одежду — мгновенно на устройстве без интернета',
+feat1:'Определите свой сезонный цветотип',feat2:'Анализируйте любой предмет одежды',feat3:'Подходит / Нейтрально / Не подходит — чёткие вердикты',feat4:'100% офлайн — данные никуда не отправляются',
+getStarted:'Начать',
+homeTitle:'Добро пожаловать',homeSubtitle:'Ваш цветотип определён',
+homeAnalyze:'Проверить образ',homeHistory:'История анализов',homeChangeType:'Изменить цветотип',homeBestColors:'Лучшие цвета',homeAvoid:'Избегать',
+homeSeasonHint:'Нажмите, чтобы узнать подробнее →',
+setupTitle:'Настройка цветотипа',setupDesc:'Сначала определите свой сезонный цветотип',
+autoDetect:'Авто-определение по фото',autoDetectDesc:'Загрузите селфи для анализа',manualSelect:'Выбрать вручную',manualSelectDesc:'Выберите из 4 сезонных типов',
+chooseTypeTitle:'Выберите цветотип',chooseTypeDesc:'Выберите сезон, который лучше всего соответствует вашей внешности',
+confirm:'Подтвердить',type:'тип',
+uploadPhotoTitle:'Загрузите фото',uploadPhotoDesc:'Используйте чёткое фото анфас при естественном освещении',
+photoTip:'💡 Совет: хорошее освещение, без макияжа, однотонный фон — улучшает точность',
+uploadSelfie:'Загрузите селфи',uploadSelfieHint:'JPG, PNG, HEIC — обрабатывается на устройстве',uploadSelfieHintConvert:'HEIC конвертируется автоматически',
+detectBtn:'Определить мой цветотип',detecting:'Анализ внешности…',convertingHeic:'⏳ Обработка изображения…',
+back:'← Назад',
+detectedType:'Определённый цветотип',confidence:'% уверенность',
+analysisDetails:'Детали анализа',skinTone:'Тон кожи',undertone:'Подтон',hair:'Волосы',eyes:'Глаза',contrast:'Контраст',
+seasonProfile:'Профиль цветотипа',seasonKeywords:'Ключевые характеристики',seasonMakeup:'Макияж и аксессуары',seasonNeutral:'Нейтральные цвета',
+approxWarning:'⚠️ Анализ на устройстве приблизителен. Если результат кажется неверным — выберите вручную.',
+confirmType:'Подтвердить этот тип',chooseDiff:'Выбрать другой',
+yourType:'Ваш цветотип',history:'История',change:'Изменить',
+analyzeTitle:'Анализ одежды',analyzeDesc:'Загрузите фото одежды — из гардероба, примерочной или маркетплейса',
+uploadClothing:'Загрузите фото одежды',uploadClothingHint:'JPG, PNG, HEIC — гардероб, магазин или лукбук',
+analyzeBtn:'Анализировать →',analyzingTitle:'Анализ вашего предмета',analyzingDesc:'Проверка совместимости цвета с вашим сезонным типом…',
+toDashboard:'← Назад',scoreLabel:'Оценка совместимости',analysisLabel:'Анализ',recommendLabel:'Рекомендация',yourPalette:'Ваша палитра',
+analyzeAnother:'Анализировать ещё',historyTitle:'История анализов',clearAll:'Очистить всё',noHistory:'Анализов пока нет',
+errFormat:'❌ Формат не поддерживается. Используйте JPG, PNG или HEIC.',errSize:'❌ Файл слишком большой. Максимум 50 МБ.',errSecurity:'❌ Браузер блокирует доступ. Откройте сайт через http:// (не file://).',errReader:'❌ Не удалось прочитать файл.',errImage:'❌ Файл повреждён.',errHeic:'❌ Не удалось обработать изображение. Попробуйте сделать скриншот и загрузить его.',
+detectionFailed:'Определение не удалось — попробуйте выбрать вручную.',analysisFailed:'Анализ не удался. Попробуйте ещё раз.',
+offline:'web',best:'Лучшие цвета',avoid:'Избегать',
+verdictFits:'✓ Подходит',verdictNeutral:'◌ Нейтрально',verdictNot:'✗ Не подходит',
+warm:'тёплый',cool:'холодный',neutral:'нейтральный',light:'светлый',medium:'средний',dark:'тёмный',muted:'приглушённый',bright:'яркий',high:'высокий',low:'низкий',olive:'оливковый',
+sessionInfo:'Данные хранятся локально на этом устройстве',sessionId:'ID сессии',clearData:'Очистить все мои данные',clearDataConfirm:'Все данные будут удалены. Продолжить?',clearDataDone:'Все данные удалены.',
+settingsTitle:'Настройки',appVersion:'Версия приложения',footerMade:'2026 г.',footerContact:'Связаться',
+installApp:'Добавьте иконку Chromé на главный экран',installDesc:'сохраните быстрый доступ к анализу гардероба',installBtn:'Установить',installDismiss:'Не сейчас',
+updateAvailable:'Доступно обновление',updateDesc:'Новая версия готова. Обновить сейчас?',updateBtn:'Обновить',
+pwaInstalled:'Приложение установлено ✓',standaloneMode:'app',offlineBadge:'offline',
+},
+en:{
+appTagline:'Your color stylist — works offline',appDesc:'Discover your seasonal color type and find out which clothing suits you — instantly, on-device, no internet required.',
+feat1:'Determine your seasonal color type',feat2:'Analyze any clothing item',feat3:'Fits / Neutral / Does not fit — clear verdicts',feat4:'100% offline — no data sent anywhere',
+getStarted:'Get started',
+homeTitle:'Welcome back',homeSubtitle:'Your color type is set',
+homeAnalyze:'Analyze clothing',homeHistory:'Analysis history',homeChangeType:'Change color type',homeBestColors:'Best colors',homeAvoid:'Avoid',
+homeSeasonHint:'Tap to learn more →',
+setupTitle:'Set up your color type',setupDesc:'First, identify your seasonal color type.',
+autoDetect:'Auto-detect from photo',autoDetectDesc:'Upload a selfie — analyzed on your device',manualSelect:'Choose manually',manualSelectDesc:'Pick from the 4 seasonal types',
+chooseTypeTitle:'Choose your color type',chooseTypeDesc:'Select the season that best matches your natural coloring.',
+confirm:'Confirm',type:'type',
+uploadPhotoTitle:'Upload your photo',uploadPhotoDesc:'Use a clear front-facing photo in natural lighting.',
+photoTip:'💡 Tip: good lighting, no heavy makeup, plain background — improves accuracy',
+uploadSelfie:'Upload a selfie',uploadSelfieHint:'JPG, PNG, HEIC — processed on your device',uploadSelfieHintConvert:'HEIC is converted automatically',
+detectBtn:'Detect my color type',detecting:'Analyzing features…',convertingHeic:'⏳ Processing image…',
+back:'← Back',
+detectedType:'Detected color type',confidence:'% confidence',
+analysisDetails:'Analysis details',skinTone:'Skin tone',undertone:'Undertone',hair:'Hair',eyes:'Eyes',contrast:'Contrast',
+seasonProfile:'Color type profile',seasonKeywords:'Key characteristics',seasonMakeup:'Makeup & accessories',seasonNeutral:'Neutral colors',
+approxWarning:'⚠️ On-device analysis is approximate. If it doesn\'t feel right — choose manually.',
+confirmType:'Confirm this type',chooseDiff:'Choose differently',
+yourType:'Your color type',history:'History',change:'Change',
+analyzeTitle:'Analyze clothing',analyzeDesc:'Upload any clothing photo — wardrobe or marketplace screenshot.',
+uploadClothing:'Upload clothing photo',uploadClothingHint:'JPG, PNG, HEIC — wardrobe, shop or lookbook',
+analyzeBtn:'Analyze this item →',analyzingTitle:'Analyzing your item',analyzingDesc:'Checking color compatibility with your seasonal type…',
+toDashboard:'← Back',scoreLabel:'Color match score',analysisLabel:'Analysis',recommendLabel:'Recommendation',yourPalette:'Your palette',
+analyzeAnother:'Analyze another item',historyTitle:'Analysis history',clearAll:'Clear all',noHistory:'No analyses yet',
+errFormat:'❌ Format not supported. Please use JPG, PNG, or HEIC.',errSize:'❌ File too large. Maximum 50 MB.',errSecurity:'❌ Browser blocked access. Open via http:// not file://.',errReader:'❌ Could not read file.',errImage:'❌ File corrupted.',errHeic:'❌ Could not process image. Try taking a screenshot and uploading that.',
+detectionFailed:'Detection failed — try manual selection.',analysisFailed:'Analysis failed. Please try again.',
+offline:'web',best:'Best colors',avoid:'Avoid',
+verdictFits:'✓ Fits',verdictNeutral:'◌ Neutral',verdictNot:'✗ Does not fit',
+warm:'warm',cool:'cool',neutral:'neutral',light:'light',medium:'medium',dark:'dark',muted:'muted',bright:'bright',high:'high',low:'low',olive:'olive',
+sessionInfo:'Data is stored locally on this device',sessionId:'Session ID',clearData:'Clear all my data',clearDataConfirm:'All data will be deleted. Continue?',clearDataDone:'All data cleared.',
+settingsTitle:'Settings',appVersion:'App version',footerMade:'2026 ',footerContact:'Contact',
+installApp:'Add Chromé to your home screen',installDesc:'quick and offline access',installBtn:'Install',installDismiss:'Not now',
+updateAvailable:'Update available',updateDesc:'A new version is ready. Update now?',updateBtn:'Update',
+pwaInstalled:'App installed ✓',standaloneMode:'app',offlineBadge:'offline',
+}
+};
+
+/* SEASONS */
+window.SEASONS={
+spring:{id:'spring',name:{ru:'Весна',en:'Spring'},label:{ru:'Тёплый и светлый',en:'Warm & Light'},swatches:['#F5C040','#E87040','#F0A060','#70B050','#60C0A0'],best:{ru:'Тёплые жёлтые, кораллы, персиковые, слоновая кость, тёплый белый',en:'Warm yellows, corals, peaches, ivory, warm whites'},avoid:{ru:'Чёрный, ледяные голубые, холодные серые, белоснежный',en:'Black, icy blues, cool grays, stark white'},accent:'#D4703A',bg:'#FFF8F0',tagline:{ru:'Вы излучаете свет, тепло и естественную мягкость',en:'Golden warmth is your signature'},keywords:{ru:['Тёплый','Светлый','Яркий','Свежий','Жизнерадостный'],en:['Warm','Light','Bright','Fresh','Cheerful']},description:{ru:'Весенний цветотип отличается тёплым золотистым подтоном кожи и лёгкой, яркой внешностью. Ваша кожа словно светится изнутри, когда вы одеваетесь в тёплые, чистые тона.',en:'The Spring color type features warm golden undertones and a light, bright appearance. Your skin glows from within when you wear warm, clear tones.'},makeup:{ru:'Персиковые и коралловые румяна, тёплые нюдовые помады, бронзер вместо контуринга, золотистые тени.',en:'Peach and coral blush, warm nude lipsticks, bronzer instead of contouring, golden eye shadows.'},neutrals:{ru:'Слоновая кость, кремовый, тёплый бежевый, карамельный, светло-золотой',en:'Ivory, cream, warm beige, caramel, light gold'}},
+summer:{id:'summer',name:{ru:'Лето',en:'Summer'},label:{ru:'Холодный и мягкий',en:'Cool & Soft'},swatches:['#C0A8D4','#A0B4D0','#C8A0B4','#90B8B0','#C4B0C8'],best:{ru:'Мягкие розовые, лавандовые, пыльно-голубые, приглушённые розы, мов',en:'Soft pinks, lavenders, dusty blues, muted roses, mauve'},avoid:{ru:'Оранжевый, тёплые коричневые, яркие жёлтые, землистые тона',en:'Orange, warm browns, bright yellows, earthy tones'},accent:'#7A96B8',bg:'#F0F4FA',tagline:{ru:'Вы сияете в мягких, приглушенных и холодных тонах',en:'You shine in soft, dreamy tones'},keywords:{ru:['Холодный','Мягкий','Романтичный','Утончённый','Деликатный'],en:['Cool','Soft','Romantic','Refined','Delicate']},description:{ru:'Летний цветотип характеризуется холодным розоватым или голубоватым подтоном кожи. Ваша красота — в утончённости и деликатности.',en:'The Summer color type features cool pink or bluish undertones. Your beauty lies in refinement and delicacy.'},makeup:{ru:'Розово-лиловые румяна, холодные нюды и розовые помады, серебристые или лавандовые тени.',en:'Pink-mauve blush, cool nudes and pink lipsticks, silver or lavender eye shadows.'},neutrals:{ru:'Мягкий белый, серо-голубой, лавандово-серый, пыльная роза',en:'Soft white, blue-gray, lavender-gray, dusty rose'}},
+autumn:{id:'autumn',name:{ru:'Осень',en:'Autumn'},label:{ru:'Тёплый и глубокий',en:'Warm & Deep'},swatches:['#C05020','#907810','#608030','#904028','#806010'],best:{ru:'Ржавчина, терракота, оливковый, горчица, тёплый бежевый, насыщенный коричневый',en:'Rust, terracotta, olive, mustard, warm camel, rich browns'},avoid:{ru:'Ледяные розовые, яркие голубые, серебряный, холодные серые',en:'Icy pinks, bright blues, silver, cool grays'},accent:'#A06820',bg:'#FDF5E6',tagline:{ru:'Насыщенные землистые тона раскрывают вашу глубину',en:'Rich earthy tones bring out your depth'},keywords:{ru:['Тёплый','Глубокий','Насыщенный','Земляной','Загадочный'],en:['Warm','Deep','Rich','Earthy','Mysterious']},description:{ru:'Осенний цветотип — самый насыщенный среди тёплых типов. Золотистый, бронзовый или медный подтон кожи.',en:'The Autumn type is the richest among warm types. Golden, bronze, or copper skin undertones.'},makeup:{ru:'Терракотовые и бронзовые румяна, тёплые коричнево-красные помады, бронзер.',en:'Terracotta and bronze blush, warm brown-red lipsticks, bronzer.'},neutrals:{ru:'Тёплый бежевый, верблюжий, тёмно-коричневый, хаки, кофейный',en:'Warm beige, camel, dark brown, khaki, coffee'}},
+winter:{id:'winter',name:{ru:'Зима',en:'Winter'},label:{ru:'Холодный и глубокий',en:'Cool & Deep'},swatches:['#2A2A4E','#163060','#2040A0','#6030A0','#C03060'],best:{ru:'Чистый белый, чёрный, тёмно-синий, королевский синий, изумрудный, фуксия',en:'Pure white, black, navy, royal blue, emerald, fuchsia'},avoid:{ru:'Оранжевый, тёплый бежевый, пыльная роза, золотой, верблюжий',en:'Orange, warm beige, dusty rose, gold, camel'},accent:'#5040C0',bg:'#F0F0F8',tagline:{ru:'Смелые контрасты — ваша суперсила',en:'Bold contrasts are your superpower'},keywords:{ru:['Холодный','Контрастный','Драматичный','Элегантный','Яркий'],en:['Cool','Contrasted','Dramatic','Elegant','Striking']},description:{ru:'Зимний цветотип — самый контрастный и драматичный. Холодные, чистые цвета высокой интенсивности.',en:'The Winter type is the most contrasted and dramatic. Cold, pure colors of high intensity.'},makeup:{ru:'Холодные розово-красные помады, чёткие чёрные стрелки, румяна цвета фуксии.',en:'Cool pink-red lipsticks, precise black eyeliner, fuchsia blush.'},neutrals:{ru:'Чистый белый, чёрный, тёмно-серый, тёмно-синий',en:'Pure white, black, dark gray, dark navy'}}
+};
+
+/* MATH UTILS */
+window.rgbToHsv=function(r,g,b){r/=255;g/=255;b/=255;var max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min,h=0;if(d!==0){if(max===r)h=((g-b)/d+6)%6;else if(max===g)h=(b-r)/d+2;else h=(r-g)/d+4;h*=60;}return{h:h,s:max===0?0:d/max,v:max};};
+window.rgbToLab=function(r,g,b){r/=255;g/=255;b/=255;r=r>0.04045?Math.pow((r+0.055)/1.055,2.4):r/12.92;g=g>0.04045?Math.pow((g+0.055)/1.055,2.4):g/12.92;b=b>0.04045?Math.pow((b+0.055)/1.055,2.4):b/12.92;var x=r*0.4124+g*0.3576+b*0.1805,y=r*0.2126+g*0.7152+b*0.0722,z=r*0.0193+g*0.1192+b*0.9505;x/=0.95047;z/=1.08883;var f=function(t){return t>0.008856?Math.cbrt(t):7.787*t+16/116;};return{L:116*f(y)-16,a:500*(f(x)-f(y)),b:200*(f(y)-f(z))};};
+window.deltaE=function(l1,l2){return Math.sqrt(Math.pow(l1.L-l2.L,2)+Math.pow(l1.a-l2.a,2)+Math.pow(l1.b-l2.b,2));};
+window.percentile=function(arr,p){if(!arr.length)return 0;var s=arr.slice().sort(function(a,b){return a-b;});return s[Math.min(Math.floor(s.length*p/100),s.length-1)];};
+
+window.isHeicFile=function(f){var n=(f.name||'').toLowerCase(),m=(f.type||'').toLowerCase();return m==='image/heic'||m==='image/heif'||n.endsWith('.heic')||n.endsWith('.heif');};
+window.loadImageFromFile=function(file){return new Promise(function(resolve,reject){var ou=null;try{ou=URL.createObjectURL(file);}catch(e){}if(ou){var i1=new Image(),tm=setTimeout(function(){i1.src='';try{URL.revokeObjectURL(ou);}catch(e){}tryR();},8000);i1.onload=function(){clearTimeout(tm);try{URL.revokeObjectURL(ou);}catch(e){}resolve(i1);};i1.onerror=function(){clearTimeout(tm);try{URL.revokeObjectURL(ou);}catch(e){}tryR();};i1.src=ou;}else{tryR();}function tryR(){var rd=new FileReader();rd.onerror=function(){reject(new Error('reader'));};rd.onload=function(e){var i2=new Image();i2.onerror=function(){reject(new Error('heic_unsupported'));};i2.onload=function(){resolve(i2);};i2.src=e.target.result;};rd.readAsDataURL(file);}});};
+window.compressImage=function(file,onStatus){return new Promise(function(resolve,reject){var name=(file.name||'').toLowerCase(),mime=(file.type||'').toLowerCase(),isHeic=window.isHeicFile(file);var allowedMimes=['image/jpeg','image/jpg','image/png','image/gif','image/webp','image/bmp'];var allowedExts=['.jpg','.jpeg','.png','.webp','.gif','.bmp','.heic','.heif'];var ok=allowedMimes.indexOf(mime)!==-1||isHeic||allowedExts.some(function(e){return name.endsWith(e);})||!file.type;if(!ok){reject(new Error('format'));return;}if(file.size>50*1024*1024){reject(new Error('size'));return;}if(isHeic&&onStatus)onStatus('converting');window.loadImageFromFile(file).then(function(img){if(onStatus)onStatus('processing');try{var MAX=800,scale=Math.min(1,MAX/Math.max(img.width,img.height));var w=Math.round(img.width*scale),h=Math.round(img.height*scale);if(!w||!h){reject(new Error('image'));return;}var canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;var ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,w,h);try{ctx.getImageData(0,0,1,1);}catch(se){reject(new Error('canvas_security'));return;}resolve({canvas:canvas,w:w,h:h,preview:canvas.toDataURL('image/jpeg',0.82)});}catch(e){reject(new Error('canvas'));}}).catch(function(err){reject(err.message==='heic_unsupported'?new Error('heic_unsupported'):err);});});};
+window.getImageData=function(o){return o.canvas.getContext('2d').getImageData(0,0,o.w,o.h);};
+window.getErrMsg=function(code,lang){var map={format:'errFormat',size:'errSize',canvas_security:'errSecurity',reader:'errReader',image:'errImage',canvas:'errReader',heic_unsupported:'errHeic'};var key=map[code]||'errReader';return(window.T[lang]||window.T['ru'])[key]||window.T['ru'][key];};
+
+/* SKIN DETECTION */
+window.isSkinPixel=function(r,g,b){var rgb=(r>95&&g>40&&b>20&&r>g&&r>b&&Math.abs(r-g)>10&&r-b>15);var hsv=window.rgbToHsv(r,g,b);return rgb||(hsv.h>=0&&hsv.h<=55&&hsv.s>=0.08&&hsv.s<=0.80&&hsv.v>=0.25);};
+window.getSkinPixels=function(id,cf){cf=cf||0.6;var W=id.width,H=id.height,x0=Math.floor(W*(1-cf)/2),x1=Math.floor(W*(1+cf)/2),y0=Math.floor(H*(1-cf)/2),y1=Math.floor(H*(1+cf)/2),skin=[],d=id.data;for(var y=y0;y<y1;y++)for(var x=x0;x<x1;x++){var i=(y*W+x)*4;if(window.isSkinPixel(d[i],d[i+1],d[i+2]))skin.push({r:d[i],g:d[i+1],b:d[i+2]});}return skin;};
+window.detectColorType=function(imgObj){return new Promise(function(resolve){var id=window.getImageData(imgObj),W=id.width,H=id.height,d=id.data;var skin=window.getSkinPixels(id,0.65);if(skin.length<200)skin=window.getSkinPixels(id,0.95);if(skin.length<100){skin=[];for(var y=Math.floor(H*0.2);y<Math.floor(H*0.6);y++)for(var x=Math.floor(W*0.3);x<Math.floor(W*0.7);x++){var i=(y*W+x)*4;skin.push({r:d[i],g:d[i+1],b:d[i+2]});}}var sR=0,sG=0,sB=0;for(var k=0;k<skin.length;k++){sR+=skin[k].r;sG+=skin[k].g;sB+=skin[k].b;}var lab=window.rgbToLab(sR/skin.length,sG/skin.length,sB/skin.length);var ws=lab.b*0.7+lab.a*0.3,ut=ws>10?'warm':ws<3?'cool':'neutral';var L=lab.L,st=L>68?'light':L>52?'medium':L>38?'olive':'dark';var lum=[];for(var j=0;j<d.length;j+=4)lum.push(0.299*d[j]+0.587*d[j+1]+0.114*d[j+2]);var cv=window.percentile(lum,90)-window.percentile(lum,10),ct=cv>140?'high':cv>80?'medium':'low';var mx={warm:{light:'spring',medium:ct==='high'?'spring':'autumn',olive:'autumn',dark:'autumn'},cool:{light:'summer',medium:ct==='high'?'winter':'summer',olive:'winter',dark:'winter'},neutral:{light:'summer',medium:'spring',olive:'autumn',dark:'winter'}};function hair(id){var W=id.width,H=id.height,d=id.data,sR=0,sG=0,sB=0,c=0,y1=Math.floor(H*0.18),x0=Math.floor(W*0.25),x1=Math.floor(W*0.75);for(var y=0;y<y1;y++)for(var x=x0;x<x1;x++){var i=(y*W+x)*4;sR+=d[i];sG+=d[i+1];sB+=d[i+2];c++;}if(!c)return{ru:'неизвестно',en:'unknown'};var h=window.rgbToHsv(sR/c,sG/c,sB/c);if(h.v<0.25)return{ru:'чёрные',en:'black'};if(h.v>0.80&&h.s<0.20)return{ru:'светлые',en:'blonde'};if(h.h<40&&h.s>0.20)return{ru:'рыжие',en:'red'};if(h.v<0.55)return{ru:'тёмно-коричневые',en:'dark brown'};return{ru:'коричневые',en:'brown'};}function eye(id){var W=id.width,H=id.height,d=id.data,sR=0,sG=0,sB=0,c=0,y0=Math.floor(H*0.30),y1=Math.floor(H*0.45),x0=Math.floor(W*0.20),x1=Math.floor(W*0.80);for(var y=y0;y<y1;y++)for(var x=x0;x<x1;x++){var i=(y*W+x)*4;if(d[i]>200&&d[i+1]>200&&d[i+2]>200)continue;sR+=d[i];sG+=d[i+1];sB+=d[i+2];c++;}if(!c)return{ru:'неизвестно',en:'unknown'};var h=window.rgbToHsv(sR/c,sG/c,sB/c);if(h.v<0.30)return{ru:'тёмно-карие',en:'dark brown'};if(h.h>180&&h.h<260)return{ru:'голубые',en:'blue'};if(h.h>=80&&h.h<=160)return{ru:'зелёные',en:'green'};if(h.h<50&&h.s>0.20)return{ru:'ореховые',en:'hazel'};return{ru:'карие',en:'brown'};}resolve({color_type:mx[ut][st],confidence_score:parseFloat(Math.min(0.92,0.55+Math.abs(ws)*0.018+(cv/255)*0.15).toFixed(2)),skin_tone:st,undertone:ut,hair_color:hair(id),eye_color:eye(id),contrast_level:ct});});};
+
+/* ═══════════════════════════════════════════════
+УЛУЧШЕННЫЙ АЛГОРИТМ АНАЛИЗА ОДЕЖДЫ (раздел 28.3)
+Object Isolation + Color Segmentation + Distribution
+═══════════════════════════════════════════════ */
+window.SEASON_PALETTES_LAB={spring:[{L:78,a:12,b:38},{L:62,a:32,b:28},{L:72,a:22,b:32},{L:58,a:5,b:22},{L:82,a:4,b:14},{L:65,a:28,b:18},{L:70,a:8,b:35}],summer:[{L:72,a:12,b:-14},{L:62,a:4,b:-18},{L:68,a:18,b:-8},{L:58,a:4,b:-10},{L:74,a:14,b:-4},{L:60,a:8,b:-20},{L:76,a:2,b:-6}],autumn:[{L:42,a:32,b:38},{L:54,a:14,b:42},{L:48,a:8,b:28},{L:38,a:26,b:22},{L:44,a:18,b:32},{L:52,a:6,b:20},{L:34,a:10,b:16}],winter:[{L:10,a:2,b:-2},{L:94,a:0,b:2},{L:28,a:4,b:-34},{L:38,a:42,b:-22},{L:32,a:10,b:-28},{L:44,a:-12,b:-20},{L:50,a:36,b:-10}]};
+window.COLOR_NAMES={white:{ru:'белый',en:'white'},black:{ru:'чёрный',en:'black'},gray:{ru:'серый',en:'gray'},'dark gray':{ru:'тёмно-серый',en:'dark gray'},'light gray':{ru:'светло-серый',en:'light gray'},red:{ru:'красный',en:'red'},brown:{ru:'коричневый',en:'brown'},'orange-red':{ru:'оранжево-красный',en:'orange-red'},orange:{ru:'оранжевый',en:'orange'},camel:{ru:'верблюжий',en:'camel'},yellow:{ru:'жёлтый',en:'yellow'},beige:{ru:'бежевый',en:'beige'},'yellow-green':{ru:'жёлто-зелёный',en:'yellow-green'},green:{ru:'зелёный',en:'green'},'dark green':{ru:'тёмно-зелёный',en:'dark green'},teal:{ru:'бирюзовый',en:'teal'},blue:{ru:'синий',en:'blue'},'dark blue':{ru:'тёмно-синий',en:'dark blue'},'blue-purple':{ru:'сине-фиолетовый',en:'blue-purple'},purple:{ru:'фиолетовый',en:'purple'},'pink-purple':{ru:'розово-фиолетовый',en:'pink-purple'},pink:{ru:'розовый',en:'pink'}};
+window.getColorKey=function(h,s,v){if(s<0.10){if(v>0.85)return'white';if(v<0.18)return'black';return'gray';}if(s<0.20){if(v<0.40)return'dark gray';return'light gray';}if(h<12)return'red';if(h<22)return v<0.5?'brown':'orange-red';if(h<38)return s>0.6?'orange':'camel';if(h<58)return s>0.5?'yellow':'beige';if(h<80)return'yellow-green';if(h<150)return v<0.45?'dark green':'green';if(h<185)return'teal';if(h<220)return v<0.45?'dark blue':'blue';if(h<260)return'blue-purple';if(h<290)return'purple';if(h<320)return'pink-purple';if(h<345)return'pink';return'red';};
+
+/* Шаг 1: isBackground — определяем фоновый пиксель */
+window.isBackgroundPixel=function(r,g,b){
+/* Почти-белый фон */
+if(r>230&&g>230&&b>230)return true;
+/* Почти-чёрный */
+if(r<20&&g<20&&b<20)return true;
+/* Нейтральный серый (низкая насыщенность + средняя яркость — типичный фон) */
+var mx=Math.max(r,g,b),mn=Math.min(r,g,b);
+var sat=mx===0?0:(mx-mn)/mx;
+if(sat<0.08&&r>180&&r<235)return true;
+return false;
+};
+
+/* Шаг 2: извлечение центральных пикселей с гауссовым весом */
+window.extractClothingPixels=function(id){
+var W=id.width,H=id.height,d=id.data;
+var pixels=[];
+/* Центральная зона: 20%-80% по X, 10%-90% по Y */
+var x0=Math.floor(W*0.20),x1=Math.floor(W*0.80);
+var y0=Math.floor(H*0.10),y1=Math.floor(H*0.90);
+var cx=W/2,cy=H/2;
+var sx=W*0.3,sy=H*0.4; /* sigma для гауссова веса */
+
+for(var y=y0;y<y1;y+=2){
+for(var x=x0;x<x1;x+=2){
+var i=(y*W+x)*4;
+var r=d[i],g=d[i+1],b=d[i+2];
+if(window.isBackgroundPixel(r,g,b))continue;
+/* Гауссов вес: пиксели в центре важнее */
+var dx=(x-cx)/sx,dy=(y-cy)/sy;
+var weight=Math.exp(-(dx*dx+dy*dy)/2);
+pixels.push({r:r,g:g,b:b,w:weight});
+}
+}
+return pixels;
+};
+
+/* Шаг 3: квантизация с весами (weighted color buckets) */
+window.getWeightedDominantColor=function(pixels){
+if(!pixels.length)return{r:128,g:128,b:128};
+var buckets={};
+for(var i=0;i<pixels.length;i++){
+var p=pixels[i];
+var qr=Math.round(p.r/20)*20;
+var qg=Math.round(p.g/20)*20;
+var qb=Math.round(p.b/20)*20;
+var key=qr+','+qg+','+qb;
+if(!buckets[key])buckets[key]={r:qr,g:qg,b:qb,w:0,n:0};
+buckets[key].w+=p.w;
+buckets[key].n++;
+}
+/* Фильтруем шум: берём только bucket'ы с >1% от суммарного веса */
+var totalW=0;
+var keys=Object.keys(buckets);
+for(var k=0;k<keys.length;k++)totalW+=buckets[keys[k]].w;
+var threshold=totalW*0.01;
+var best=null,bestW=0;
+for(var k=0;k<keys.length;k++){
+var bk=buckets[keys[k]];
+if(bk.w>threshold&&bk.w>bestW){bestW=bk.w;best=bk;}
+}
+return best||{r:128,g:128,b:128};
+};
+
+/* Шаг 4: учёт вторичных цветов для более точного score */
+window.getTopColors=function(pixels,topN){
+if(!pixels.length)return[];
+var buckets={};
+for(var i=0;i<pixels.length;i++){
+var p=pixels[i];
+var qr=Math.round(p.r/24)*24;
+var qg=Math.round(p.g/24)*24;
+var qb=Math.round(p.b/24)*24;
+var key=qr+','+qg+','+qb;
+if(!buckets[key])buckets[key]={r:qr,g:qg,b:qb,w:0};
+buckets[key].w+=p.w;
+}
+var totalW=0;
+var arr=Object.keys(buckets).map(function(k){totalW+=buckets[k].w;return buckets[k];});
+arr.sort(function(a,b){return b.w-a.w;});
+/* Минимальный порог 3% */
+var thr=totalW*0.03;
+return arr.filter(function(b){return b.w>=thr;}).slice(0,topN||3);
+};
+
+window.analyzeClothing=function(imgObj,sid){return new Promise(function(resolve){
+var id=window.getImageData(imgObj);
+
+/* Извлекаем пиксели одежды (Object Isolation) */
+var clothingPixels=window.extractClothingPixels(id);
+
+/* Фоллбэк: если слишком мало пикселей — берём центральный прямоугольник */
+if(clothingPixels.length<50){
+var W=id.width,H=id.height,d=id.data;
+clothingPixels=[];
+for(var y=Math.floor(H*0.15);y<Math.floor(H*0.85);y+=3)
+for(var x=Math.floor(W*0.20);x<Math.floor(W*0.80);x+=3){
+var i=(y*W+x)*4;
+clothingPixels.push({r:d[i],g:d[i+1],b:d[i+2],w:1});
+}
+}
+
+/* Доминирующий цвет */
+var dom=window.getWeightedDominantColor(clothingPixels);
+var hsv=window.rgbToHsv(dom.r,dom.g,dom.b);
+var lab=window.rgbToLab(dom.r,dom.g,dom.b);
+
+/* Топ-цвета для multi-color score */
+var topColors=window.getTopColors(clothingPixels,3);
+
+/* Классификация */
+var temp=lab.b>8?'warm':lab.b<-4?'cool':'neutral';
+var br=lab.L>65?'light':lab.L>40?'medium':'dark';
+var sat=hsv.s<0.22?'muted':hsv.s<0.58?'medium':'bright';
+var ck=window.getColorKey(hsv.h,hsv.s,hsv.v);
+var pal=window.SEASON_PALETTES_LAB[sid];
+
+/* Score по доминирующему цвету */
+var dists=pal.map(function(ref){return window.deltaE(lab,ref);});
+var md=Math.min.apply(null,dists);
+
+/* Дополнительный score по вторичным цветам */
+var secondaryBonus=0;
+if(topColors.length>1){
+for(var tc=1;tc<Math.min(topColors.length,3);tc++){
+var tc_lab=window.rgbToLab(topColors[tc].r,topColors[tc].g,topColors[tc].b);
+var tc_dists=pal.map(function(ref){return window.deltaE(tc_lab,ref);});
+var tc_md=Math.min.apply(null,tc_dists);
+/* Вторичные цвета дают меньший вклад */
+secondaryBonus+=(50-Math.min(tc_md,50))*0.08;
+}
+}
+
+var s=window.SEASONS[sid];
+var iw=(sid==='spring'||sid==='autumn');
+var tb=0;
+if(iw&&temp==='warm')tb=8;if(iw&&temp==='cool')tb=-8;
+if(!iw&&temp==='cool')tb=8;if(!iw&&temp==='warm')tb=-8;
+var sb=0;
+if((sid==='spring'||sid==='winter')&&sat==='bright')sb=5;
+if((sid==='summer'||sid==='autumn')&&sat==='muted')sb=5;
+if((sid==='summer'||sid==='autumn')&&sat==='bright')sb=-5;
+
+var score=Math.round(Math.max(0,Math.min(100,100-md*1.5+tb+sb+secondaryBonus)));
+var verdict=score>=75?'fits':score>=45?'neutral':'not_fits';
+var ar=id.width/id.height;
+var cat=ar>1.4?{ru:'верх',en:'top'}:ar<0.6?{ru:'платье',en:'dress'}:{ru:'другое',en:'other'};
+resolve({color_key:ck,color_temperature:temp,brightness:br,saturation:sat,category:cat,color_match_score:score,verdict:verdict,season_name:s.name,season_best:s.best});
+});};
+</script>
+
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback}=React;
+
+function useLang(){
+const[lang,setLang]=useState(window.LANG);
+useEffect(()=>{window.__langCallback=setLang;return()=>{window.__langCallback=null;};},[]);
+const t=k=>window.T[lang][k]||window.T['ru'][k]||k;
+const s=o=>typeof o==='object'&&o!==null?(o[lang]||o['ru']):o;
+return{lang,t,s};
+}
+
+function usePWA(){
+const[installable,setInstallable]=useState(!!window._pwaInstallPrompt);
+const[installed,setInstalled]=useState(window.isPWAStandalone&&window.isPWAStandalone());
+const[updateReady,setUpdateReady]=useState(false);
+const[isOnline,setIsOnline]=useState(navigator.onLine);
+useEffect(()=>{
+const a=()=>setInstallable(true),b=()=>{setInstalled(true);setInstallable(false);},c=()=>setUpdateReady(true),d=()=>setIsOnline(true),e=()=>setIsOnline(false);
+window.addEventListener('pwa-installable',a);window.addEventListener('pwa-installed',b);window.addEventListener('sw-update-available',c);window.addEventListener('online',d);window.addEventListener('offline',e);
+return()=>{window.removeEventListener('pwa-installable',a);window.removeEventListener('pwa-installed',b);window.removeEventListener('sw-update-available',c);window.removeEventListener('online',d);window.removeEventListener('offline',e);};
+},[]);
+const promptInstall=async()=>{if(!window._pwaInstallPrompt)return;window._pwaInstallPrompt.prompt();const{outcome}=await window._pwaInstallPrompt.userChoice;if(outcome==='accepted'){window._pwaInstallPrompt=null;setInstallable(false);}};
+const applyUpdate=()=>{if(window._SW_REGISTRATION&&window._SW_REGISTRATION.waiting)window._SW_REGISTRATION.waiting.postMessage({type:'SKIP_WAITING'});window.location.reload();};
+return{installable,installed,updateReady,isOnline,promptInstall,applyUpdate};
+}
+
+function useFileLoader(t,lang){
+const[imgObj,setImgObj]=useState(null);
+const[converting,setConverting]=useState(null);
+const[fileErr,setFileErr]=useState(null);
+const load=async f=>{
+setConverting(null);setFileErr(null);setImgObj(null);
+try{const r=await window.compressImage(f,st=>{setConverting(st==='converting'?t('convertingHeic'):null);});setConverting(null);setImgObj(r);}
+catch(e){setConverting(null);const code=e.message?e.message.split(':')[0]:'reader';setFileErr(window.getErrMsg(code,lang||window.LANG));}
+};
+return{imgObj,converting,fileErr,load,reset:()=>{setImgObj(null);setFileErr(null);}};
+}
+
+/* UI ATOMS */
+function Btn({children,onClick,variant='primary',full,small,disabled,style={}}){
+const st={primary:{background:'#1a1a18',color:'#fafaf8',border:'none',padding:small?'8px 16px':'12px 24px'},secondary:{background:'transparent',color:'#1a1a18',border:'1px solid #c8c4bc',padding:small?'7px 15px':'11px 23px'},ghost:{background:'none',border:'none',color:'#888880',fontSize:14},danger:{background:'#fce4ec',color:'#b71c1c',border:'1px solid #f48fb1',padding:small?'7px 15px':'11px 23px'},success:{background:'#e8f5e9',color:'#2e7d32',border:'1px solid #a5d6a7',padding:small?'7px 15px':'11px 23px'}};
+return<button onClick={disabled?undefined:onClick} style={{...(st[variant]||st.primary),fontFamily:'Georgia,serif',fontSize:small?13:15,fontWeight:400,borderRadius:6,cursor:disabled?'not-allowed':'pointer',width:full?'100%':'auto',opacity:disabled?0.4:1,transition:'all 0.15s',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:8,letterSpacing:'0.01em',...style}}>{children}</button>;
+}
+function Chip({verdict,t}){const m={fits:{label:t('verdictFits'),bg:'#e8f5e9',c:'#2e7d32',b:'#a5d6a7'},neutral:{label:t('verdictNeutral'),bg:'#fff8e1',c:'#f57f17',b:'#ffe082'},not_fits:{label:t('verdictNot'),bg:'#fce4ec',c:'#b71c1c',b:'#f48fb1'}};const v=m[verdict]||m.neutral;return<span style={{display:'inline-block',background:v.bg,color:v.c,border:'1px solid '+v.b,borderRadius:20,padding:'4px 14px',fontSize:13,letterSpacing:'0.02em'}}>{v.label}</span>;}
+function Score({n,t}){const c=n>=75?'#2e7d32':n>=45?'#f57f17':'#b71c1c';return<div style={{width:'100%'}}><div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}><span style={{fontSize:12,color:'#888880'}}>{t('scoreLabel')}</span><span style={{fontSize:12,color:c}}>{n}/100</span></div><div style={{height:4,background:'#e8e4dc',borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:n+'%',background:c,borderRadius:2,transition:'width 1.2s ease'}}/></div></div>;}
+function Card({children,style={}}){return<div style={{background:'#fff',border:'1px solid #e8e4dc',borderRadius:10,padding:'1rem 1.25rem',...style}}>{children}</div>;}
+function Lbl({children}){return<div style={{fontSize:11,color:'#aaa8a0',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6}}>{children}</div>;}
+function Spin(){return<span style={{display:'inline-block',width:16,height:16,borderRadius:'50%',border:'2px solid #c8c4bc',borderTopColor:'#1a1a18',animation:'spin 0.7s linear infinite'}}/>;}
+
+function Drop({onSelect,preview,label,sub,converting}){
+const ref=useRef(null);const[drag,setDrag]=useState(false);const handle=useCallback(f=>{if(f)onSelect(f);},[onSelect]);
+return<div onClick={()=>!converting&&ref.current&&ref.current.click()} onDragOver={e=>{e.preventDefault();setDrag(true);}} onDragLeave={()=>setDrag(false)} onDrop={e=>{e.preventDefault();setDrag(false);if(!converting)handle(e.dataTransfer.files[0]);}} style={{border:'1.5px dashed '+(drag?'#888880':'#c8c4bc'),borderRadius:10,cursor:converting?'default':'pointer',overflow:'hidden',background:drag?'#f5f2eb':'transparent',transition:'all 0.15s',minHeight:160,display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
+{converting?<div style={{textAlign:'center',padding:'2rem'}}><div style={{marginBottom:12,display:'flex',justifyContent:'center'}}><Spin/></div><div style={{fontSize:13,color:'#888880'}}>{converting}</div></div>:preview?<img src={preview} style={{width:'100%',maxHeight:280,objectFit:'contain'}}/>:<div style={{textAlign:'center',padding:'2rem 1rem'}}><div style={{fontSize:28,marginBottom:10}}>📷</div><div style={{fontSize:14,color:'#444440',marginBottom:4}}>{label}</div>{sub&&<div style={{fontSize:12,color:'#aaa'}}>{sub}</div>}</div>}
+<input ref={ref} type="file" accept="image/*,.heic,.heif" style={{display:'none'}} onChange={e=>handle(e.target.files[0])}/>
+</div>;
+}
+
+/* PWA BANNERS */
+function InstallBanner({t,onInstall,onDismiss}){return<div style={{background:'#1a1a18',color:'#fafaf8',padding:'12px 1.5rem',display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}><span style={{fontSize:18}}>📲</span><div style={{flex:1,minWidth:150}}><div style={{fontSize:13,fontWeight:400}}>{t('installApp')}</div><div style={{fontSize:11,opacity:0.7}}>{t('installDesc')}</div></div><div style={{display:'flex',gap:8}}><Btn onClick={onInstall} variant="success" small>{t('installBtn')}</Btn><Btn onClick={onDismiss} variant="ghost" small style={{color:'#aaa'}}>{t('installDismiss')}</Btn></div></div>;}
+function UpdateBanner({t,onUpdate}){return<div style={{background:'#fff8e1',borderBottom:'1px solid #ffe082',padding:'10px 1.5rem',display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}><span style={{fontSize:16}}>🔄</span><div style={{flex:1,fontSize:13,color:'#795548'}}><b style={{fontWeight:400}}>{t('updateAvailable')}</b> — {t('updateDesc')}</div><Btn onClick={onUpdate} small style={{background:'#f57f17',color:'#fff',border:'none'}}>{t('updateBtn')}</Btn></div>;}
+function OfflineBadge({t}){return<div style={{background:'#f5f5f5',borderBottom:'1px solid #e0e0e0',padding:'6px 1.5rem',display:'flex',alignItems:'center',gap:8,fontSize:12,color:'#888880'}}><span style={{width:7,height:7,borderRadius:'50%',background:'#bdbdbd',display:'inline-block'}}/>{t('offlineBadge')} — данные из кеша</div>;}
+
+/* NAV — клик по цветотипу → SeasonInfo (упрощённый экран) */
+function Nav({season,onLogoClick,onSeasonInfoClick,onSettings,t,s,isOnline,installed}){
+return<nav style={{borderBottom:'1px solid #e8e4dc',padding:'1rem 1.5rem',display:'flex',alignItems:'center',gap:10,background:'#fff',position:'sticky',top:0,zIndex:10}}>
+<div onClick={onLogoClick} style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer'}}>
+<div style={{width:28,height:28,borderRadius:'8px',background:'#1a1a18',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15}}>🎨</div>
+<span style={{fontSize:17,fontWeight:400,letterSpacing:'-0.01em'}}>Chromé</span>
+</div>
+<span style={{fontSize:11,color:'#aaa8a0',background:'#f5f2eb',borderRadius:4,padding:'2px 7px',letterSpacing:'0.03em'}}>{installed?t('standaloneMode'):t('offline')}</span>
+{!isOnline&&<span style={{fontSize:11,color:'#b71c1c',background:'#fce4ec',borderRadius:4,padding:'2px 7px'}}>offline</span>}
+<div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:8}}>
+{season&&(
+/* 28.2.2 / 28.2.4: клик на цветотип в шапке → упрощённый экран */
+<span onClick={onSeasonInfoClick} style={{fontSize:12,color:'#888880',fontStyle:'italic',display:'flex',alignItems:'center',gap:6,cursor:'pointer',padding:'4px 8px',borderRadius:6,transition:'background 0.15s'}}
+onMouseEnter={e=>e.currentTarget.style.background='#f5f2eb'}
+onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+<span style={{width:8,height:8,borderRadius:'50%',background:window.SEASONS[season].accent,display:'inline-block'}}/>
+{s(window.SEASONS[season].name)}
+</span>
+)}
+<span onClick={onSettings} style={{cursor:'pointer',fontSize:16,padding:'4px 6px',borderRadius:6,transition:'background 0.15s',color:'#888880'}}
+onMouseEnter={e=>e.currentTarget.style.background='#f5f2eb'}
+onMouseLeave={e=>e.currentTarget.style.background='transparent'}>⚙️</span>
+</div>
+</nav>;
+}
+
+/* ── SCREENS ── */
+
+function Welcome({onStart,t}){
+return<div className="fade" style={{maxWidth:420,margin:'0 auto',padding:'4rem 1.5rem 3rem',textAlign:'center'}}>
+<div style={{width:64,height:64,borderRadius:'22px',background:'#1a1a18',display:'flex',alignItems:'center',justifyContent:'center',fontSize:30,margin:'0 auto 1.5rem',boxShadow:'0 4px 20px rgba(0,0,0,0.15)'}}>🎨</div>
+<h1 style={{fontSize:32,fontWeight:400,marginBottom:8,letterSpacing:'-0.02em'}}>Chromé</h1>
+<p style={{fontSize:16,color:'#666660',marginBottom:6,lineHeight:1.6,fontStyle:'italic'}}>{t('appTagline')}</p>
+<p style={{fontSize:14,color:'#aaa8a0',marginBottom:'2rem',lineHeight:1.7}}>{t('appDesc')}</p>
+<div style={{marginBottom:'1.25rem'}}><Btn onClick={onStart} full>{t('getStarted')}</Btn></div>
+<div style={{background:'#F5F3EF',borderRadius:14,padding:'16px 18px',textAlign:'left'}}>
+{[['🌸',t('feat1')],['📸',t('feat2')],['🔒',t('feat4')]].map(([ic,tx],i)=>(
+<div key={tx} style={{display:'flex',alignItems:'center',gap:12,fontSize:13,color:'#555550',paddingTop:i>0?10:0,marginTop:i>0?10:0,borderTop:i>0?'1px solid #E8E4DC':'none'}}>
+<span style={{fontSize:15,minWidth:20,flexShrink:0}}>{ic}</span><span style={{lineHeight:1.5}}>{tx}</span>
+</div>
+))}
+</div>
+</div>;
+}
+
+/* 28.2.1 + 28.2.3: HomePage с кликабельным цветотипом и выделенным блоком */
+function HomePage({season,history,onAnalyze,onHistory,onChangeType,onSeasonInfo,t,s}){
+const ss=window.SEASONS[season];
+return<div className="fade" style={{maxWidth:480,margin:'0 auto',padding:'2rem 1.5rem 5rem'}}>
+<div style={{marginBottom:'1.5rem'}}>
+<p style={{fontSize:13,color:'#888880',marginBottom:4}}>{t('homeSubtitle')}</p>
+<h1 style={{fontSize:28,fontWeight:400,letterSpacing:'-0.02em'}}>{t('homeTitle')}</h1>
+</div>
+
+{/* 28.2.1: Кликабельная карточка цветотипа */}
+<div onClick={onSeasonInfo} style={{cursor:'pointer'}} title={t('homeSeasonHint')}>
+<Card style={{background:ss.bg,border:'2px solid '+ss.accent+'60',marginBottom:'1.25rem',padding:'1.25rem',transition:'box-shadow 0.15s,transform 0.15s'}}
+onMouseEnter={e=>{e.currentTarget.style.boxShadow='0 4px 16px '+ss.accent+'30';e.currentTarget.style.transform='translateY(-1px)';}}
+onMouseLeave={e=>{e.currentTarget.style.boxShadow='none';e.currentTarget.style.transform='none';}}>
+<div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:'0.75rem',flexWrap:'wrap',gap:8}}>
+<div>
+<div style={{fontSize:22,fontWeight:400,marginBottom:2,display:'flex',alignItems:'center',gap:8}}>
+{s(ss.name)}
+<span style={{fontSize:12,color:ss.accent,background:ss.bg,border:'1px solid '+ss.accent+'40',borderRadius:12,padding:'2px 10px',fontStyle:'normal',fontWeight:400}}>
+{t('homeSeasonHint')}
+</span>
+</div>
+<div style={{fontSize:13,color:'#888880',fontStyle:'italic'}}>{s(ss.label)}</div>
+</div>
+<div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'flex-end'}}>{ss.swatches.map(c=><div key={c} style={{width:22,height:22,borderRadius:4,background:c}}/>)}</div>
+</div>
+<div style={{fontSize:13,color:'#666660',fontStyle:'italic',marginBottom:'0.75rem',lineHeight:1.6}}>{s(ss.tagline)}</div>
+<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+<div><div style={{fontSize:10,color:'#aaa8a0',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{t('homeBestColors')}</div><div style={{fontSize:12,color:'#555550',lineHeight:1.6}}>{s(ss.best)}</div></div>
+<div><div style={{fontSize:10,color:'#aaa8a0',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{t('homeAvoid')}</div><div style={{fontSize:12,color:'#555550',lineHeight:1.6}}>{s(ss.avoid)}</div></div>
+</div>
+</Card>
+</div>
+
+<div style={{display:'flex',flexDirection:'column',gap:10}}>
+{/* 28.2.3: Блок «Проверь образ» с выделенной обводкой */}
+<button onClick={onAnalyze} style={{background:'#EAE6DF',border:'2px solid #1a1a18',borderRadius:10,padding:'1rem 1.25rem',cursor:'pointer',textAlign:'left',display:'flex',alignItems:'center',gap:14,fontFamily:'Georgia,serif',transition:'opacity 0.15s',boxShadow:'0 2px 8px rgba(26,26,24,0.10)'}}
+onMouseEnter={e=>e.currentTarget.style.opacity='0.85'}
+onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
+<span style={{fontSize:22}}>🪄</span>
+<div style={{flex:1}}>
+<div style={{fontSize:15,marginBottom:2,fontWeight:400}}>{t('homeAnalyze')}</div>
+<div style={{fontSize:12,opacity:0.6}}>{t('analyzeDesc')}</div>
+</div>
+<span style={{fontSize:18,opacity:0.5}}>→</span>
+</button>
+
+{history.length>0&&<button onClick={onHistory} style={{background:'#fff',border:'1px solid #e8e4dc',borderRadius:10,padding:'1rem 1.25rem',cursor:'pointer',textAlign:'left',display:'flex',alignItems:'center',gap:14,fontFamily:'Georgia,serif',transition:'opacity 0.15s'}}
+onMouseEnter={e=>e.currentTarget.style.opacity='0.85'}
+onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
+<span style={{fontSize:22}}>🗂</span>
+<div style={{flex:1}}><div style={{fontSize:15,marginBottom:2}}>{t('homeHistory')}</div><div style={{fontSize:12,opacity:0.6}}>{history.length} {window.LANG==='ru'?'анализов':'analyses'}</div></div>
+<span style={{fontSize:18,opacity:0.4}}>→</span>
+</button>}
+
+<button onClick={onChangeType} style={{background:'#fff',border:'1px solid #e8e4dc',borderRadius:10,padding:'1rem 1.25rem',cursor:'pointer',textAlign:'left',display:'flex',alignItems:'center',gap:14,fontFamily:'Georgia,serif',transition:'opacity 0.15s'}}
+onMouseEnter={e=>e.currentTarget.style.opacity='0.85'}
+onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
+<span style={{fontSize:22}}>🎨</span>
+<div style={{flex:1}}><div style={{fontSize:15}}>{t('homeChangeType')}</div></div>
+<span style={{fontSize:18,opacity:0.4}}>→</span>
+</button>
+</div>
+</div>;
+}
+
+/* 28.2.2: SeasonInfo — упрощённый экран цветотипа (без шкалы уверенности, деталей анализа, баннера, кнопки подтвердить) */
+function SeasonInfo({seasonId,onBack,t,s}){
+const season=window.SEASONS[seasonId];
+return<div className="fade" style={{maxWidth:480,margin:'0 auto',padding:'2rem 1.5rem 5rem'}}>
+<Btn onClick={onBack} variant="ghost">{t('back')}</Btn>
+<Card style={{background:season.bg,border:'2px solid '+season.accent+'50',marginBottom:'1rem',marginTop:'1rem',padding:'1.25rem'}}>
+<div style={{fontSize:28,fontWeight:400,marginBottom:4}}>{s(season.name)}</div>
+<div style={{fontSize:14,color:'#666660',marginBottom:'1rem',fontStyle:'italic'}}>{s(season.label)} · {s(season.tagline)}</div>
+<div style={{display:'flex',gap:8,flexWrap:'wrap'}}>{season.swatches.map(c=><div key={c} style={{width:26,height:26,borderRadius:4,background:c}}/>)}</div>
+</Card>
+
+<Card style={{marginBottom:'1rem',borderLeft:'3px solid '+season.accent}}>
+<Lbl>{t('seasonProfile')}</Lbl>
+<p style={{fontSize:13,color:'#444440',lineHeight:1.7,marginBottom:'1rem'}}>{s(season.description)}</p>
+<div style={{marginBottom:'0.75rem'}}>
+<div style={{fontSize:11,color:'#aaa8a0',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6}}>{t('seasonKeywords')}</div>
+<div style={{display:'flex',flexWrap:'wrap',gap:6}}>{s(season.keywords).map(kw=><span key={kw} style={{background:season.bg,color:season.accent,border:'1px solid '+season.accent+'50',borderRadius:20,padding:'3px 12px',fontSize:12}}>{kw}</span>)}</div>
+</div>
+<div style={{marginBottom:'0.75rem'}}>
+<div style={{fontSize:11,color:'#aaa8a0',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{t('seasonMakeup')}</div>
+<div style={{fontSize:12,color:'#555550',lineHeight:1.6}}>{s(season.makeup)}</div>
+</div>
+<div>
+<div style={{fontSize:11,color:'#aaa8a0',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{t('seasonNeutral')}</div>
+<div style={{fontSize:12,color:'#555550',lineHeight:1.6}}>{s(season.neutrals)}</div>
+</div>
+</Card>
+
+<Card style={{marginBottom:'1rem'}}>
+<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+<div><div style={{fontSize:11,color:'#aaa8a0',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{t('best')}</div><div style={{fontSize:12,color:'#2e7d32',lineHeight:1.6}}>{s(season.best)}</div></div>
+<div><div style={{fontSize:11,color:'#aaa8a0',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{t('avoid')}</div><div style={{fontSize:12,color:'#b71c1c',lineHeight:1.6}}>{s(season.avoid)}</div></div>
+</div>
+</Card>
+</div>;
+}
+
+function Setup({onManual,onPhoto,onBack,t}){
+return<div className="fade" style={{maxWidth:420,margin:'0 auto',padding:'2.5rem 1.5rem'}}>
+<Btn onClick={onBack} variant="ghost">{t('back')}</Btn>
+<h2 style={{fontSize:22,fontWeight:400,margin:'12px 0 6px'}}>{t('setupTitle')}</h2>
+<p style={{fontSize:13,color:'#888880',marginBottom:'1.5rem',lineHeight:1.6}}>{t('setupDesc')}</p>
+{[['📸',t('autoDetect'),t('autoDetectDesc'),onPhoto],['🎨',t('manualSelect'),t('manualSelectDesc'),onManual]].map(([ico,tx,desc,fn])=>(
+<button key={tx} onClick={fn} style={{width:'100%',background:'#fff',border:'1px solid #e8e4dc',borderRadius:10,padding:'1.25rem',cursor:'pointer',textAlign:'left',marginBottom:10,display:'flex',gap:14,alignItems:'flex-start',fontFamily:'Georgia,serif'}}>
+<span style={{fontSize:22,minWidth:28}}>{ico}</span>
+<div><div style={{fontWeight:400,fontSize:15,marginBottom:4,color:'#1a1a18'}}>{tx}</div><div style={{fontSize:12,color:'#888880'}}>{desc}</div></div>
+</button>
+))}
+</div>;
+}
+
+function ManualSelect({onSelect,onBack,t,s}){
+const[sel,setSel]=useState(null);const ss=sel?window.SEASONS[sel]:null;
+return<div className="fade" style={{maxWidth:480,margin:'0 auto',padding:'2.5rem 1.5rem'}}>
+<Btn onClick={onBack} variant="ghost">{t('back')}</Btn>
+<h2 style={{fontSize:22,fontWeight:400,margin:'12px 0 6px'}}>{t('chooseTypeTitle')}</h2>
+<p style={{fontSize:13,color:'#888880',marginBottom:'1.25rem'}}>{t('chooseTypeDesc')}</p>
+<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:'1rem'}}>
+{Object.values(window.SEASONS).map(season=>(
+<button key={season.id} onClick={()=>setSel(season.id)} style={{background:sel===season.id?season.bg:'#fff',border:sel===season.id?'2px solid '+season.accent:'1px solid #e8e4dc',borderRadius:10,padding:'1rem',cursor:'pointer',textAlign:'left',transition:'all 0.15s',fontFamily:'Georgia,serif'}}>
+<div style={{fontWeight:400,fontSize:15,marginBottom:2,color:'#1a1a18'}}>{s(season.name)}</div>
+<div style={{fontSize:11,color:'#888880',marginBottom:10}}>{s(season.label)}</div>
+<div style={{display:'flex',gap:5}}>{season.swatches.slice(0,4).map(c=><div key={c} style={{width:18,height:18,borderRadius:3,background:c}}/>)}</div>
+</button>
+))}
+</div>
+{ss&&<Card style={{marginBottom:'1rem',background:ss.bg,border:'1px solid '+ss.accent+'30'}}><div style={{fontStyle:'italic',color:'#555550',marginBottom:4,fontSize:14}}>{s(ss.tagline)}</div><div style={{fontSize:12,color:'#888880'}}>{t('best')}: {s(ss.best)}</div></Card>}
+<Btn onClick={()=>sel&&onSelect(sel)} full disabled={!sel}>{t('confirm')} {sel?s(window.SEASONS[sel].name):''} {t('type')}</Btn>
+</div>;
+}
+
+function PhotoScreen({onDetected,onBack,setErr,t,lang}){
+const{imgObj,converting,fileErr,load}=useFileLoader(t,lang);const[loading,setLoading]=useState(false);
+const detect=async()=>{if(!imgObj)return;setLoading(true);try{const r=await window.detectColorType(imgObj);onDetected(r);}catch(e){setErr(t('detectionFailed'));}setLoading(false);};
+return<div className="fade" style={{maxWidth:420,margin:'0 auto',padding:'2.5rem 1.5rem'}}>
+<Btn onClick={onBack} variant="ghost">{t('back')}</Btn>
+<h2 style={{fontSize:22,fontWeight:400,margin:'12px 0 6px'}}>{t('uploadPhotoTitle')}</h2>
+<p style={{fontSize:13,color:'#888880',marginBottom:'0.5rem',lineHeight:1.5}}>{t('uploadPhotoDesc')}</p>
+<div style={{background:'#f5f2eb',borderRadius:8,padding:'8px 12px',fontSize:12,color:'#888880',marginBottom:'0.5rem'}}>{t('photoTip')}</div>
+<div style={{background:'#f0f4fa',borderRadius:8,padding:'8px 12px',fontSize:12,color:'#7A96B8',marginBottom:'1rem',display:'flex',alignItems:'center',gap:6}}><span>📱</span><span>JPG · PNG · HEIC — {t('uploadSelfieHintConvert')}</span></div>
+<Drop onSelect={load} preview={imgObj&&imgObj.preview} label={t('uploadSelfie')} sub="JPG · PNG · HEIC" converting={converting}/>
+{fileErr&&<div style={{fontSize:12,color:'#b71c1c',marginTop:8,lineHeight:1.5}}>{fileErr}</div>}
+<div style={{marginTop:'1rem'}}><Btn onClick={detect} full disabled={!imgObj||loading||!!converting}>{loading?<span><Spin/>&nbsp;{t('detecting')}</span>:t('detectBtn')}</Btn></div>
+</div>;
+}
+
+/* Detected — полный экран после анализа (с шкалой уверенности, деталями, баннером, кнопками) */
+function Detected({d,onConfirm,onOverride,onBack,t,s}){
+const season=window.SEASONS[d.color_type];const conf=Math.round(d.confidence_score*100);
+const loc=v=>({warm:t('warm'),cool:t('cool'),neutral:t('neutral'),light:t('light'),medium:t('medium'),dark:t('dark'),olive:t('olive'),high:t('high'),low:t('low')}[v]||v);
+const ls=o=>typeof o==='object'?s(o):o;
+return<div className="fade" style={{maxWidth:480,margin:'0 auto',padding:'2rem 1.5rem 5rem'}}>
+<Btn onClick={onBack} variant="ghost">{t('back')}</Btn>
+<Card style={{background:season.bg,border:'1px solid '+season.accent+'40',marginBottom:'1rem',marginTop:'1rem'}}>
+<Lbl>{t('detectedType')}</Lbl>
+<div style={{fontSize:28,fontWeight:400,marginBottom:4}}>{s(season.name)}</div>
+<div style={{fontSize:14,color:'#666660',marginBottom:'1rem',fontStyle:'italic'}}>{s(season.label)} · {s(season.tagline)}</div>
+<div style={{display:'flex',gap:8,marginBottom:'1rem',flexWrap:'wrap'}}>{season.swatches.map(c=><div key={c} style={{width:26,height:26,borderRadius:4,background:c}}/>)}</div>
+<div style={{display:'flex',alignItems:'center',gap:10}}>
+<div style={{flex:1,height:4,background:'#00000015',borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:conf+'%',background:season.accent,borderRadius:2}}/></div>
+<span style={{fontSize:12,color:'#888880',whiteSpace:'nowrap'}}>{conf}{t('confidence')}</span>
+</div>
+</Card>
+<Card style={{marginBottom:'1rem'}}>
+<Lbl>{t('analysisDetails')}</Lbl>
+<div style={{fontSize:13,color:'#555550',lineHeight:1.8}}>
+<div>{t('skinTone')}: <b style={{fontWeight:400,color:'#1a1a18'}}>{loc(d.skin_tone)}</b> &nbsp;·&nbsp; {t('undertone')}: <b style={{fontWeight:400,color:'#1a1a18'}}>{loc(d.undertone)}</b></div>
+<div>{t('hair')}: <b style={{fontWeight:400,color:'#1a1a18'}}>{ls(d.hair_color)}</b> &nbsp;·&nbsp; {t('eyes')}: <b style={{fontWeight:400,color:'#1a1a18'}}>{ls(d.eye_color)}</b></div>
+<div>{t('contrast')}: <b style={{fontWeight:400,color:'#1a1a18'}}>{loc(d.contrast_level)}</b></div>
+</div>
+</Card>
+<Card style={{marginBottom:'1rem',borderLeft:'3px solid '+season.accent}}>
+<Lbl>{t('seasonProfile')}</Lbl>
+<p style={{fontSize:13,color:'#444440',lineHeight:1.7,marginBottom:'1rem'}}>{s(season.description)}</p>
+<div style={{marginBottom:'0.75rem'}}>
+<div style={{fontSize:11,color:'#aaa8a0',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6}}>{t('seasonKeywords')}</div>
+<div style={{display:'flex',flexWrap:'wrap',gap:6}}>{s(season.keywords).map(kw=><span key={kw} style={{background:season.bg,color:season.accent,border:'1px solid '+season.accent+'50',borderRadius:20,padding:'3px 12px',fontSize:12}}>{kw}</span>)}</div>
+</div>
+<div style={{marginBottom:'0.75rem'}}>
+<div style={{fontSize:11,color:'#aaa8a0',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{t('seasonMakeup')}</div>
+<div style={{fontSize:12,color:'#555550',lineHeight:1.6}}>{s(season.makeup)}</div>
+</div>
+<div>
+<div style={{fontSize:11,color:'#aaa8a0',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{t('seasonNeutral')}</div>
+<div style={{fontSize:12,color:'#555550',lineHeight:1.6}}>{s(season.neutrals)}</div>
+</div>
+</Card>
+<Card style={{marginBottom:'1rem'}}>
+<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+<div><div style={{fontSize:11,color:'#aaa8a0',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{t('best')}</div><div style={{fontSize:12,color:'#2e7d32',lineHeight:1.6}}>{s(season.best)}</div></div>
+<div><div style={{fontSize:11,color:'#aaa8a0',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{t('avoid')}</div><div style={{fontSize:12,color:'#b71c1c',lineHeight:1.6}}>{s(season.avoid)}</div></div>
+</div>
+</Card>
+<div style={{background:'#fff8e1',border:'1px solid #ffe082',borderRadius:8,padding:'8px 12px',fontSize:12,color:'#795548',marginBottom:'1rem'}}>{t('approxWarning')}</div>
+<div style={{display:'flex',flexDirection:'column',gap:10}}>
+<Btn onClick={()=>onConfirm(d.color_type)} full>{t('confirmType')}</Btn>
+<Btn onClick={onOverride} variant="secondary" full>{t('chooseDiff')}</Btn>
+</div>
+</div>;
+}
+
+function AnalyzePage({season,onAnalyze,onBack,t,s,lang}){
+const ss=window.SEASONS[season];const{imgObj,converting,fileErr,load}=useFileLoader(t,lang);
+return<div className="fade" style={{maxWidth:480,margin:'0 auto',padding:'2rem 1.5rem'}}>
+<Btn onClick={onBack} variant="ghost">{t('back')}</Btn>
+<Card style={{background:ss.bg,border:'1px solid '+ss.accent+'30',margin:'1rem 0'}}>
+<div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+<div style={{display:'flex',gap:5}}>{ss.swatches.slice(0,5).map(c=><div key={c} style={{width:18,height:18,borderRadius:3,background:c}}/>)}</div>
+<div style={{flex:1,minWidth:120}}><span style={{fontSize:14,fontWeight:400}}>{s(ss.name)}</span><span style={{fontSize:12,color:'#888880',marginLeft:6,fontStyle:'italic'}}>{s(ss.label)}</span></div>
+</div>
+</Card>
+<h2 style={{fontSize:20,fontWeight:400,marginBottom:6}}>{t('analyzeTitle')}</h2>
+<p style={{fontSize:13,color:'#888880',marginBottom:'0.5rem',lineHeight:1.5}}>{t('analyzeDesc')}</p>
+<div style={{background:'#f0f4fa',borderRadius:8,padding:'8px 12px',fontSize:12,color:'#7A96B8',marginBottom:'1rem',display:'flex',alignItems:'center',gap:6}}><span>📱</span><span>JPG · PNG · HEIC — {t('uploadSelfieHintConvert')}</span></div>
+<Drop onSelect={load} preview={imgObj&&imgObj.preview} label={t('uploadClothing')} sub="JPG · PNG · HEIC" converting={converting}/>
+{fileErr&&<div style={{fontSize:12,color:'#b71c1c',marginTop:8,lineHeight:1.5}}>{fileErr}</div>}
+<div style={{marginTop:'1rem'}}><Btn onClick={()=>imgObj&&onAnalyze(imgObj,imgObj.preview)} full disabled={!imgObj||!!converting}>{t('analyzeBtn')}</Btn></div>
+</div>;
+}
+
+function Analyzing({t}){return<div style={{maxWidth:400,margin:'0 auto',padding:'6rem 1.5rem',textAlign:'center'}}><div style={{marginBottom:'1.5rem',display:'flex',justifyContent:'center'}}><Spin/></div><div style={{fontSize:18,fontWeight:400,marginBottom:8}}>{t('analyzingTitle')}</div><div style={{fontSize:13,color:'#888880',fontStyle:'italic'}}>{t('analyzingDesc')}</div></div>;}
+
+function Result({result,preview,season,onBack,t,s,lang}){
+const ss=window.SEASONS[season];
+const colorName=window.COLOR_NAMES[result.color_key]?s(window.COLOR_NAMES[result.color_key]):result.color_key;
+const cap=colorName.charAt(0).toUpperCase()+colorName.slice(1);
+const sn=s(result.season_name),tl=t(result.color_temperature),sl=t(result.saturation),bf=s(result.season_best)||'';
+const expl={fits:lang==='ru'?`${cap} прекрасно вписывается в палитру «${sn}» — ${tl} температура и ${sl} насыщенность подчёркивают вашу внешность.`:`${cap} sits beautifully within your ${sn} palette — the ${tl} temperature and ${sl} saturation complement your coloring.`,neutral:lang==='ru'?`${cap} — рабочий выбор для типа «${sn}», не в идеальном диапазоне. Добавьте акценты своей палитры.`:`${cap} is workable for your ${sn} type, though not ideal. Pair with your signature colors.`,not_fits:lang==='ru'?`${cap} конфликтует с палитрой «${sn}». ${tl} температура работает против вашей внешности.`:`${cap} clashes with your ${sn} palette. The ${tl} temperature works against your coloring.`};
+const recs={fits:lang==='ru'?'Носите как основной предмет — подчёркивает вашу естественную красоту.':'Wear as a main piece — it enhances your natural glow.',neutral:lang==='ru'?`Используйте как базу, добавив аксессуары палитры «${sn}».`:`Use as a base and add ${sn}-palette accessories.`,not_fits:lang==='ru'?`Попробуйте заменить на: ${bf.split(',').slice(0,2).join(' или ')}.`:`Try replacing with: ${bf.split(',').slice(0,2).join(' or ')}.`};
+return<div className="fade" style={{maxWidth:480,margin:'0 auto',padding:'2rem 1.5rem'}}>
+<div style={{marginBottom:'1rem'}}><Btn onClick={onBack} variant="ghost">{t('toDashboard')}</Btn></div>
+<div style={{display:'grid',gridTemplateColumns:'100px 1fr',gap:'1rem',marginBottom:'1.5rem',alignItems:'start'}}>
+<img src={preview} style={{width:'100%',aspectRatio:'3/4',objectFit:'cover',borderRadius:8,border:'1px solid #e8e4dc'}}/>
+<div>
+<div style={{marginBottom:10}}><Chip verdict={result.verdict} t={t}/></div>
+<div style={{fontSize:16,fontWeight:400,marginBottom:4,color:'#1a1a18',textTransform:'capitalize'}}>{colorName}</div>
+<div style={{fontSize:11,color:'#888880',marginBottom:'0.75rem',textTransform:'capitalize',lineHeight:1.6}}>{s(result.category)} · {t(result.color_temperature)} · {t(result.brightness)} · {t(result.saturation)}</div>
+<Score n={result.color_match_score} t={t}/>
+</div>
+</div>
+<div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:'1.25rem'}}>
+{[[t('analysisLabel'),expl[result.verdict]],[t('recommendLabel'),recs[result.verdict]]].map(([label,text])=>(
+<Card key={label}><Lbl>{label}</Lbl><div style={{fontSize:13,lineHeight:1.7,color:'#555550',fontStyle:label===t('analysisLabel')?'italic':'normal'}}>{text}</div></Card>
+))}
+<Card style={{background:ss.bg,border:'1px solid '+ss.accent+'30'}}>
+<Lbl>{t('yourPalette')} — {s(ss.name)}</Lbl>
+<div style={{display:'flex',gap:8,flexWrap:'wrap'}}>{ss.swatches.map(c=><div key={c} style={{width:28,height:28,borderRadius:5,background:c}}/>)}</div>
+</Card>
+</div>
+<Btn onClick={onBack} full>{t('analyzeAnother')}</Btn>
+</div>;
+}
+
+function History({history,onBack,onClear,t,s}){
+return<div className="fade" style={{maxWidth:480,margin:'0 auto',padding:'2rem 1.5rem'}}>
+<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.5rem'}}>
+<div><Btn onClick={onBack} variant="ghost">{t('back')}</Btn><h2 style={{fontSize:22,fontWeight:400,marginTop:8}}>{t('historyTitle')}</h2></div>
+{history.length>0&&<Btn onClick={onClear} variant="secondary" small>{t('clearAll')}</Btn>}
+</div>
+{history.length===0?<div style={{textAlign:'center',padding:'4rem',color:'#aaa',fontSize:14,fontStyle:'italic'}}>{t('noHistory')}</div>:
+<div style={{display:'flex',flexDirection:'column',gap:10}}>
+{history.map(item=>{const cn=window.COLOR_NAMES[item.result.color_key]?s(window.COLOR_NAMES[item.result.color_key]):item.result.color_key;return<Card key={item.id} style={{display:'grid',gridTemplateColumns:'56px 1fr auto',gap:12,alignItems:'center'}}>
+<img src={item.preview} style={{width:'100%',aspectRatio:'1',objectFit:'cover',borderRadius:5,border:'1px solid #e8e4dc'}}/>
+<div><div style={{fontSize:14,fontWeight:400,marginBottom:2,color:'#1a1a18',textTransform:'capitalize'}}>{cn}</div><div style={{fontSize:11,color:'#888880',marginBottom:6,textTransform:'capitalize'}}>{s(item.result.category)}</div><Score n={item.result.color_match_score} t={t}/></div>
+<Chip verdict={item.result.verdict} t={t}/>
+</Card>;})}
+</div>}
+</div>;
+}
+
+function Settings({onBack,onClearAll,t,lang}){
+const sid=window.SessionManager.getId();const[cleared,setCleared]=useState(false);
+const handleClear=()=>{if(window.confirm(t('clearDataConfirm'))){window.SessionManager.clearAll();setCleared(true);setTimeout(()=>onClearAll(),1200);}};
+return<div className="fade" style={{maxWidth:420,margin:'0 auto',padding:'2.5rem 1.5rem'}}>
+<Btn onClick={onBack} variant="ghost">{t('back')}</Btn>
+<h2 style={{fontSize:22,fontWeight:400,margin:'12px 0 20px'}}>{t('settingsTitle')}</h2>
+<Card style={{marginBottom:'1rem'}}><Lbl>{t('appVersion')}</Lbl><div style={{fontSize:13,color:'#555550',display:'flex',alignItems:'center',justifyContent:'space-between'}}><span>Chromé</span><span style={{fontFamily:'monospace',background:'#f5f2eb',borderRadius:4,padding:'2px 8px',fontSize:12}}>1.26.4</span></div></Card>
+<Card style={{marginBottom:'1rem'}}><Lbl>{t('sessionId')}</Lbl><div style={{fontSize:11,color:'#888880',wordBreak:'break-all',fontFamily:'monospace',background:'#f5f2eb',borderRadius:6,padding:'8px 10px',lineHeight:1.6}}>{sid}</div><div style={{marginTop:10,fontSize:12,color:'#aaa8a0',display:'flex',alignItems:'flex-start',gap:6}}><span>🔒</span><span>{t('sessionInfo')}</span></div></Card>
+<Card style={{marginBottom:'1rem',border:'1px solid #f48fb1'}}><Lbl>{t('clearData')}</Lbl>{cleared?<div style={{fontSize:13,color:'#2e7d32',background:'#e8f5e9',borderRadius:6,padding:'8px 12px'}}>{t('clearDataDone')}</div>:<Btn onClick={handleClear} variant="danger" full>{t('clearData')}</Btn>}</Card>
+<div style={{marginTop:'2rem',paddingTop:'1.5rem',borderTop:'1px solid #f0ede6',textAlign:'center',fontSize:13,color:'#6B7280',lineHeight:1.6}}>
+{t('footerMade')}{' '}<a href="https://t.me/telegram" target="_blank" rel="noopener noreferrer" style={{color:'#6B7280',textDecoration:'underline',textDecorationColor:'#c8c4bc',cursor:'pointer'}}>{t('footerContact')} →</a>
+</div>
+</div>;
+}
+
+/* ── APP ── */
+function App(){
+const{lang,t,s}=useLang();
+const{installable,installed,updateReady,isOnline,promptInstall,applyUpdate}=usePWA();
+const[showInstallBanner,setShowInstallBanner]=useState(false);
+
+const savedProfile=window.SessionManager.loadProfile();
+const savedHistory=window.SessionManager.loadHistory();
+
+const[screen,setScreen]=useState(savedProfile?'home':'welcome');
+const[season,setSeason]=useState(savedProfile?savedProfile.season_id:null);
+const[history,setHistory]=useState(savedHistory);
+const[result,setResult]=useState(null);
+const[preview,setPreview]=useState(null);
+const[detection,setDetection]=useState(null);
+const[err,setErr]=useState(null);
+
+useEffect(()=>{if(installable&&!installed){const tm=setTimeout(()=>setShowInstallBanner(true),10000);return()=>clearTimeout(tm);}},[installable,installed]);
+useEffect(()=>{if(!installable)setShowInstallBanner(false);},[installable]);
+
+const goHome=()=>setScreen(season?'home':'welcome');
+const go=sc=>()=>setScreen(sc);
+
+const analyze=async(imgObj,prev)=>{
+setPreview(prev);setErr(null);setScreen('analyzing');
+try{const r=await window.analyzeClothing(imgObj,season);setResult(r);const nh=[{result:r,preview:prev,id:Date.now()},...history];setHistory(nh);window.SessionManager.saveHistory(nh);setScreen('result');}
+catch(e){setErr(t('analysisFailed'));setScreen('analyze');}
+};
+
+const confirmSeason=sc=>{setSeason(sc);window.SessionManager.saveProfile(sc);setScreen('home');};
+const handleClearAll=()=>{setSeason(null);setHistory([]);setResult(null);setDetection(null);setScreen('welcome');};
+
+return<>
+{updateReady&&<UpdateBanner t={t} onUpdate={applyUpdate}/>}
+{!isOnline&&<OfflineBadge t={t}/>}
+{showInstallBanner&&installable&&!installed&&<InstallBanner t={t} onInstall={async()=>{await promptInstall();setShowInstallBanner(false);}} onDismiss={()=>setShowInstallBanner(false)}/>}
+
+{/* Nav: клик на сезон → season-info (упрощённый экран) */}
+<Nav season={season} onLogoClick={goHome} onSeasonInfoClick={season?go('season-info'):undefined} onSettings={go('settings')} t={t} s={s} isOnline={isOnline} installed={installed}/>
+
+{err&&<div style={{background:'#fce4ec',border:'1px solid #f48fb1',borderRadius:8,padding:'10px 16px',margin:'1rem 1.5rem',fontSize:13,color:'#b71c1c',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}><span style={{lineHeight:1.5}}>{err}</span><span style={{cursor:'pointer',flexShrink:0}} onClick={()=>setErr(null)}>×</span></div>}
+
+{screen==='welcome' &&<Welcome onStart={go('setup')} t={t}/>}
+{screen==='home' &&season&&<HomePage season={season} history={history} onAnalyze={go('analyze')} onHistory={go('history')} onChangeType={go('setup')} onSeasonInfo={go('season-info')} t={t} s={s}/>}
+{/* 28.2.2: упрощённый экран цветотипа */}
+{screen==='season-info' &&season&&<SeasonInfo seasonId={season} onBack={goHome} t={t} s={s}/>}
+{screen==='setup' &&<Setup onManual={go('manual')} onPhoto={go('photo')} onBack={goHome} t={t}/>}
+{screen==='manual' &&<ManualSelect onSelect={confirmSeason} onBack={go('setup')} t={t} s={s}/>}
+{screen==='photo' &&<PhotoScreen onDetected={d=>{setDetection(d);setScreen('detected');}} onBack={go('setup')} setErr={setErr} t={t} lang={lang}/>}
+{screen==='detected' &&detection&&<Detected d={detection} onConfirm={confirmSeason} onOverride={go('manual')} onBack={go('setup')} t={t} s={s}/>}
+{screen==='analyze' &&season&&<AnalyzePage season={season} onAnalyze={analyze} onBack={goHome} t={t} s={s} lang={lang}/>}
+{screen==='analyzing' &&<Analyzing t={t}/>}
+{screen==='result' &&result&&<Result result={result} preview={preview} season={season} onBack={go('analyze')} t={t} s={s} lang={lang}/>}
+{screen==='history' &&<History history={history} onBack={goHome} onClear={()=>{const h=[];setHistory(h);window.SessionManager.saveHistory(h);setScreen('home');}} t={t} s={s}/>}
+{screen==='settings' &&<Settings onBack={goHome} onClearAll={handleClearAll} t={t} lang={lang}/>}
+</>;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
