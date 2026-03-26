@@ -19,6 +19,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.3/dist/dotlottie-wc.js" type="module"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Georgia',serif;background:#fafaf8;color:#1a1a18;min-height:100vh}
@@ -212,7 +213,7 @@ gradient:'linear-gradient(135deg,#ecdff7 0%,#d8c4f0 45%,#f5d4ef 100%)',
 title:{ru:'Ваш стиль — ваша суперсила',en:'Your style is your superpower'},
 subtitle:{ru:'Подберите образы для вашего цветотипа',en:'Choose a wardrobe for your color type'},
 emoji:'🌸',          // эмодзи-иллюстрация (используется когда lottieUrl не задан)
-lottieUrl:null,      // опционально: URL .json Lottie-анимации (null = выключено)
+lottieUrl:'https://lottie.host/6f4c3387-013f-4dea-9036-e217ff992a48/7mH5qeSZSr.lottie',
 };
 
 /* SEASONS */
@@ -510,27 +511,13 @@ return<div className="fade" style={{maxWidth:420,margin:'0 auto',padding:'4rem 1
 function PromoBanner({s}){
 const cfg=window.PROMO_BANNER;
 if(!cfg||!cfg.enabled)return null;
-const lottieRef=React.useRef(null);
-const animRef=React.useRef(null);
-React.useEffect(function(){
-if(!cfg.lottieUrl||!lottieRef.current)return;
-function initAnim(){
-animRef.current=window.lottie.loadAnimation({container:lottieRef.current,renderer:'svg',loop:true,autoplay:true,path:cfg.lottieUrl});
-}
-if(window.lottie){initAnim();return function(){animRef.current&&animRef.current.destroy();};}
-var sc=document.createElement('script');
-sc.src='https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js';
-sc.onload=initAnim;
-document.head.appendChild(sc);
-return function(){if(animRef.current)animRef.current.destroy();};
-},[]);
 function handleClick(){window.open(cfg.url,'_blank','noopener,noreferrer');}
 return<div onClick={handleClick}
 style={{cursor:'pointer',borderRadius:16,background:cfg.gradient,padding:'1.1rem 1.25rem',display:'flex',alignItems:'center',gap:14,marginTop:'1.25rem',boxShadow:'0 4px 20px rgba(160,120,210,0.18)',transition:'transform 0.2s ease,box-shadow 0.2s ease',userSelect:'none',WebkitUserSelect:'none'}}
 onMouseEnter={function(e){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 28px rgba(160,120,210,0.28)';}}
 onMouseLeave={function(e){e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='0 4px 20px rgba(160,120,210,0.18)';}}>
 {cfg.lottieUrl
-?<div ref={lottieRef} style={{width:56,height:56,flexShrink:0}}/>
+?<dotlottie-wc src={cfg.lottieUrl} autoplay loop style={{width:'72px',height:'72px',flexShrink:0,pointerEvents:'none'}}/>
 :<div style={{fontSize:44,lineHeight:1,flexShrink:0}}>{cfg.emoji}</div>}
 <div style={{flex:1,minWidth:0}}>
 <div style={{fontSize:14,fontWeight:600,color:'#2e1a4a',marginBottom:4,lineHeight:1.35}}>{s(cfg.title)}</div>
