@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Chromé — подбор гардероба по цветотипу</title>
+<meta name="theme-color" content="#1a1a18"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Chromé"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="description" content="Определи свой цветотип и узнай, подходит ли одежда — работает без интернета"/>
+<meta property="og:title" content="Chromé — подбор гардероба по цветотипу"/>
+<meta property="og:description" content="Определи свой сезонный цветотип и подбери одежду по цвету"/>
+<meta property="og:type" content="website"/>
+<link id="pwa-manifest" rel="manifest"/>
+<link id="apple-touch-icon" rel="apple-touch-icon"/>
+<link rel="icon" id="favicon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231a1a18'/><text y='.9em' font-size='60' x='50' text-anchor='middle' dominant-baseline='middle' dy='10'>🎨</text></svg>"/>
+<link rel="stylesheet" href="styles.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.3/dist/dotlottie-wc.js" type="module"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<!-- Yandex.Metrika -->
+<script type="text/javascript">(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=108255731','ym');ym(108255731,'init',{ssr:true,webvisor:true,clickmap:true,ecommerce:"dataLayer",referrer:document.referrer,url:location.href,accurateTrackBounce:true,trackLinks:true});</script>
+<noscript><div><img src="https://mc.yandex.ru/watch/108255731" style="position:absolute;left:-9999px;" alt=""/></div></noscript>
+</head>
+<body>
+<div id="root"></div>
+<div id="lang-switcher">
+  <button id="btn-ru" onclick="window.ymGoal&&window.ymGoal('language_switch_click');window.setLang('ru')">РУС</button>
+  <button id="btn-en" onclick="window.ymGoal&&window.ymGoal('language_switch_click');window.setLang('en')">ENG</button>
+</div>
+
+<!-- Порядок загрузки важен: данные → логика → UI -->
+<script src="js/config.js"></script>
+<script src="js/pwa.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/db.js"></script>
+<script src="js/session.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/data.js"></script>
+<script src="js/color-math.js"></script>
+<script src="js/color-detect.js"></script>
+<script src="js/clothing-analyze.js"></script>
+<script type="text/babel" src="js/app.js"></script>
+</body>
+</html>
