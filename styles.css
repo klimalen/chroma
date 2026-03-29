@@ -1,0 +1,15 @@
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Georgia',serif;background:#fafaf8;color:#1a1a18;min-height:100vh}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fade{animation:fadeIn 0.3s ease}
+button{font-family:'Georgia',serif}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:#f0ede6}
+::-webkit-scrollbar-thumb{background:#c8c4bc;border-radius:2px}
+#lang-switcher{position:fixed;bottom:20px;right:20px;z-index:1000;display:flex;gap:4px;background:#fff;border:1px solid #e8e4dc;border-radius:8px;padding:4px;box-shadow:0 2px 12px rgba(0,0,0,0.08)}
+#lang-switcher button{border:none;background:transparent;padding:5px 10px;font-size:12px;cursor:pointer;border-radius:5px;font-family:'Georgia',serif;color:#888880;transition:all 0.15s}
+#lang-switcher button.active{background:#1a1a18;color:#fafaf8}
+@media(max-width:480px){.mobile-stack{flex-direction:column!important;align-items:flex-start!important}.mobile-full{width:100%!important}}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:2000;display:flex;align-items:center;justify-content:center;padding:1rem}
+.modal-box{background:#fff;border-radius:14px;padding:2rem 1.75rem;width:100%;max-width:400px;box-shadow:0 8px 40px rgba(0,0,0,0.18);position:relative;animation:fadeIn 0.2s ease}
