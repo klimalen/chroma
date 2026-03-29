@@ -479,7 +479,7 @@ function Settings({onBack,onClearAll,onAuthOpen,user,onLogout,onDeleteProfile,t,
         </Card>
       )}
 
-      <Card style={{marginBottom:'1rem'}}><Lbl>{t('appVersion')}</Lbl><div style={{fontSize:13,color:'#555550',display:'flex',alignItems:'center',justifyContent:'space-between'}}><span>Chromé</span><span style={{fontFamily:'monospace',background:'#f5f2eb',borderRadius:4,padding:'2px 8px',fontSize:12}}>1.26.4</span></div></Card>
+      <Card style={{marginBottom:'1rem'}}><Lbl>{t('appVersion')}</Lbl><div style={{fontSize:13,color:'#555550',display:'flex',alignItems:'center',justifyContent:'space-between'}}><span>Chromé</span><span style={{fontFamily:'monospace',background:'#f5f2eb',borderRadius:4,padding:'2px 8px',fontSize:12}}>1.26.5</span></div></Card>
       <Card style={{marginBottom:'1rem'}}><Lbl>{t('sessionId')}</Lbl><div style={{fontSize:11,color:'#888880',wordBreak:'break-all',fontFamily:'monospace',background:'#f5f2eb',borderRadius:6,padding:'8px 10px',lineHeight:1.6}}>{sid}</div><div style={{marginTop:10,fontSize:12,color:'#aaa8a0',display:'flex',alignItems:'flex-start',gap:6}}><span>🔒</span><span>{t('sessionInfo')}</span></div></Card>
 
       {!user&&(
