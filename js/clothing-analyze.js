@@ -5,6 +5,7 @@ window.SEASON_PALETTES_LAB={
   winter:[{L:10,a:2,b:-2},{L:94,a:0,b:2},{L:28,a:4,b:-34},{L:38,a:42,b:-22},{L:32,a:10,b:-28},{L:44,a:-12,b:-20},{L:50,a:36,b:-10}]
 };
 
+
 window.isBackgroundPixel=function(r,g,b){
   if(r>230&&g>230&&b>230)return true;
   if(r<20&&g<20&&b<20)return true;
