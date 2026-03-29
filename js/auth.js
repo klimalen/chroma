@@ -1,6 +1,7 @@
 window.AuthManager=(function(){
   var _user=null,_listeners=[];
 
+  
   function notify(u){
     _user=u;
     _listeners.forEach(function(fn){try{fn(u);}catch(e){}});
