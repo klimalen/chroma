@@ -1,5 +1,9 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Georgia',serif;background:#fafaf8;color:#1a1a18;min-height:100vh}
+
+/* Глобальный фикс горизонтального скролла */
+html,body{max-width:100%;overflow-x:hidden}
+
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .fade{animation:fadeIn 0.3s ease}
@@ -7,9 +11,116 @@ button{font-family:'Georgia',serif}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:#f0ede6}
 ::-webkit-scrollbar-thumb{background:#c8c4bc;border-radius:2px}
+
 #lang-switcher{position:fixed;bottom:20px;right:20px;z-index:1000;display:flex;gap:4px;background:#fff;border:1px solid #e8e4dc;border-radius:8px;padding:4px;box-shadow:0 2px 12px rgba(0,0,0,0.08)}
 #lang-switcher button{border:none;background:transparent;padding:5px 10px;font-size:12px;cursor:pointer;border-radius:5px;font-family:'Georgia',serif;color:#888880;transition:all 0.15s}
 #lang-switcher button.active{background:#1a1a18;color:#fafaf8}
-@media(max-width:480px){.mobile-stack{flex-direction:column!important;align-items:flex-start!important}.mobile-full{width:100%!important}}
+
+@media(max-width:480px){
+  .mobile-stack{flex-direction:column!important;align-items:flex-start!important}
+  .mobile-full{width:100%!important}
+}
+
 .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:2000;display:flex;align-items:center;justify-content:center;padding:1rem}
 .modal-box{background:#fff;border-radius:14px;padding:2rem 1.75rem;width:100%;max-width:400px;box-shadow:0 8px 40px rgba(0,0,0,0.18);position:relative;animation:fadeIn 0.2s ease}
+
+/* ── НАВБАР ── */
+.nav-root{
+  border-bottom:1px solid #e8e4dc;
+  padding:0.75rem 1rem;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:#fff;
+  position:sticky;
+  top:0;
+  z-index:10;
+  width:100%;
+  box-sizing:border-box;
+  overflow:hidden;
+}
+
+/* Бейдж "web" / "app" */
+.nav-badge{
+  font-size:11px;
+  color:#aaa8a0;
+  background:#f5f2eb;
+  border-radius:4px;
+  padding:2px 7px;
+  letter-spacing:0.03em;
+  white-space:nowrap;
+  flex-shrink:0;
+}
+
+/* Кнопка "Войти" — скрываем на очень узких */
+.nav-btn-login{
+  background:none;
+  border:none;
+  color:#888880;
+  font-size:13px;
+  cursor:pointer;
+  font-family:'Georgia',serif;
+  padding:4px 8px;
+  border-radius:6px;
+  transition:background 0.15s;
+  white-space:nowrap;
+  flex-shrink:0;
+}
+.nav-btn-login:hover{background:#f5f2eb}
+
+/* Кнопка "Регистрация" */
+.nav-btn-register{
+  background:#1a1a18;
+  border:none;
+  color:#fafaf8;
+  font-size:13px;
+  cursor:pointer;
+  font-family:'Georgia',serif;
+  padding:5px 10px;
+  border-radius:6px;
+  transition:opacity 0.15s;
+  white-space:nowrap;
+  flex-shrink:0;
+}
+.nav-btn-register:hover{opacity:0.8}
+
+/* Шестерёнка */
+.nav-btn-settings{
+  cursor:pointer;
+  font-size:16px;
+  padding:4px 6px;
+  border-radius:6px;
+  transition:background 0.15s;
+  color:#888880;
+  flex-shrink:0;
+  background:none;
+  border:none;
+}
+.nav-btn-settings:hover{background:#f5f2eb}
+
+/* На узких: скрываем бейдж и кнопку "Войти" */
+@media(max-width:400px){
+  .nav-badge{display:none}
+  .nav-btn-login{display:none}
+  .nav-btn-register{padding:5px 8px;font-size:12px}
+}
+
+/* На совсем маленьких: уменьшаем логотип */
+@media(max-width:340px){
+  .nav-brand-name{font-size:14px!important}
+  .nav-btn-register{font-size:11px;padding:4px 7px}
+}
+
+/* ── PWA БАННЕР — фикс ширины ── */
+.pwa-install-banner{
+  width:100%;
+  max-width:100vw;
+  box-sizing:border-box;
+  background:#1a1a18;
+  color:#fafaf8;
+  padding:12px 1rem;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
